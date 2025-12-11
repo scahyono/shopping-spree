@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 import { getDatabase, get, off, onValue, ref, update } from 'firebase/database';
 
 const firebaseConfig = {
@@ -25,6 +25,24 @@ function initializeFirebase() {
     }
 
     return { auth, database };
+}
+
+export function waitForAuthReady() {
+    const { auth } = initializeFirebase();
+
+    return new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(
+            auth,
+            (user) => {
+                unsubscribe();
+                resolve(user);
+            },
+            () => {
+                unsubscribe();
+                resolve(null);
+            }
+        );
+    });
 }
 
 function sanitizeEmail(email) {

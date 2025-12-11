@@ -72,7 +72,14 @@ export function AppProvider({ children }) {
         let cleanup;
 
         // Import Firebase listeners dynamically
-        import('../services/firebase').then(({ listenToFamilyBudget, listenToFamilyItems, stopListening }) => {
+        import('../services/firebase').then(async ({ listenToFamilyBudget, listenToFamilyItems, stopListening, waitForAuthReady }) => {
+            const user = await waitForAuthReady();
+            if (!user) {
+                console.warn('Firebase sync skipped because no signed-in user was found.');
+                await StorageService.saveSettings({ useFirebase: false });
+                return;
+            }
+
             const unsubscribeBudget = listenToFamilyBudget((familyBudget) => {
                 if (!familyBudget) return;
                 isFirebaseUpdateRef.current = true;
