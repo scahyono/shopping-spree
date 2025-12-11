@@ -100,8 +100,8 @@ Example structure:
     },
     "family": {
       "shared": {
-        ".read": "auth != null && root.child('whitelist').child(auth.token.email.replace(/[.#$\\[\\]\\/]/g, ',')).exists()",
-        ".write": "auth != null && root.child('whitelist').child(auth.token.email.replace(/[.#$\\[\\]\\/]/g, ',')).exists()"
+        ".read": "auth != null && root.child('whitelist').child(auth.token.email.split(/[.#$\\[\\]\\/]/).join(',')).exists()",
+        ".write": "auth != null && root.child('whitelist').child(auth.token.email.split(/[.#$\\[\\]\\/]/).join(',')).exists()"
       }
     }
   }
