@@ -68,41 +68,48 @@ To deploy to GitHub Pages, you need to configure the base URL:
    ```
 
 ### Firebase Setup (Family Sync)
-Enable real-time data sync across family members using Firebase.
+Enable real-time data sync across family members using Firebase Realtime Database. The app already ships with the production Firebase configuration baked in, so no additional app-side setup is required.
 
 #### 1. Create Firebase Project
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Create a new project
 3. Enable **Google Authentication** in Authentication settings
-4. Create **Cloud Firestore** database
+4. Create a **Realtime Database** (start in locked mode)
 
-#### 2. Set Up Firestore Collections
-In Firestore, create these collections:
-- `whitelist`: Add documents with email addresses of family members (Document ID = email)
-- `family`: Will be auto-created on first sync (stores shared data)
+#### 2. Seed Whitelist Entries
+In the Realtime Database, add a `whitelist` node. Inside it, create child keys using **Firebase Auth UIDs** for every allowed account (found in the Firebase Authentication user list). Set the value to `true` for each UID you want to allow.
+
+Example structure:
+```json
+{
+  "whitelist": {
+    "Wv0ExampleUid123": true
+  }
+}
+```
 
 #### 3. Configure Security Rules
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /whitelist/{email} {
-      allow read: if request.auth != null;
-      allow write: if false; // Admin only via Console
-    }
-    match /family/shared {
-      allow read, write: if request.auth != null 
-        && exists(/databases/$(database)/documents/whitelist/$(request.auth.token.email));
+```json
+{
+  "rules": {
+    "whitelist": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "false"
+      }
+    },
+    "family": {
+      "shared": {
+        ".read": "auth != null && root.child('whitelist').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()"
+      }
     }
   }
 }
 ```
 
-#### 4. Configure in App
-1. Navigate to **Settings** page in the app
-2. Enter your Firebase configuration (from Firebase Console → Project Settings → Web App)
-3. Click **Save Configuration**
-4. Click **Sign In with Google**
-5. Enable **Firebase Sync** toggle
+#### 4. Sign In and Sync
+1. Click **Sign In with Google** in the app header
+2. Toggle **Sync** on to start syncing budget and items through Realtime Database
 
-**Note**: The app works offline-first. Data is always saved to localStorage and synced to Firebase when online.
+**Note**: The app works offline-first. Data is always saved locally and synced to Firebase when online.

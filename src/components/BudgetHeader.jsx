@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import SyncControls from './SyncControls';
 
 export default function BudgetHeader() {
     const { computed, actions, budget, loading } = useApp();
@@ -12,11 +13,14 @@ export default function BudgetHeader() {
     const isNegative = remaining < 0;
 
     return (
-        <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300">
+        <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
+            <div className="absolute right-2 top-2">
+                <SyncControls compact />
+            </div>
             {/* The Single Truth */}
             <div
                 onClick={() => setExpanded(!expanded)}
-                className="p-3 text-center cursor-pointer active:opacity-90 transition-opacity"
+                className="p-3 pt-12 text-center cursor-pointer active:opacity-90 transition-opacity"
             >
                 <div className="flex items-center justify-between px-2 mb-1">
                     <div className="opacity-80 text-xs font-medium uppercase tracking-wider">

@@ -69,29 +69,43 @@ export function AppProvider({ children }) {
         const settings = JSON.parse(localStorage.getItem('shopping_spree_settings') || '{}');
         if (!settings.useFirebase || loading) return;
 
-        // Import Firebase listener dynamically
-        import('../services/firebase').then(({ listenToFamilyData, stopListening }) => {
-            const unsubscribe = listenToFamilyData((familyData) => {
-                // Set flag BEFORE updating state (synchronous with ref)
-                isFirebaseUpdateRef.current = true;
+        let cleanup;
 
-                // Update state from Firebase real-time updates
-                if (familyData.budget) {
-                    setBudget(familyData.budget);
-                    localStorage.setItem('shopping_spree_budget', JSON.stringify(familyData.budget));
-                }
-                if (familyData.items) {
-                    setItems(familyData.items);
-                    localStorage.setItem('shopping_spree_items', JSON.stringify(familyData.items));
-                }
+        // Import Firebase listeners dynamically
+        import('../services/firebase').then(async ({ listenToFamilyBudget, listenToFamilyItems, stopListening, waitForAuthReady }) => {
+            const user = await waitForAuthReady();
+            if (!user) {
+                console.warn('Firebase sync skipped because no signed-in user was found.');
+                await StorageService.saveSettings({ useFirebase: false });
+                return;
+            }
+
+            const unsubscribeBudget = listenToFamilyBudget((familyBudget) => {
+                if (!familyBudget) return;
+                isFirebaseUpdateRef.current = true;
+                setBudget(familyBudget);
+                localStorage.setItem('shopping_spree_budget', JSON.stringify(familyBudget));
             });
 
-            return () => {
+            const unsubscribeItems = listenToFamilyItems((familyItems) => {
+                if (!familyItems) return;
+                isFirebaseUpdateRef.current = true;
+                setItems(familyItems);
+                localStorage.setItem('shopping_spree_items', JSON.stringify(familyItems));
+            });
+
+            cleanup = () => {
+                unsubscribeBudget?.();
+                unsubscribeItems?.();
                 stopListening();
             };
         }).catch(err => {
             console.error('Firebase listener error:', err);
         });
+
+        return () => {
+            cleanup?.();
+        };
     }, [loading]);
 
     // === ACTIONS ===

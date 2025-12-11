@@ -1,4 +1,4 @@
-import { loadFamilyData, saveFamilyData } from './firebase';
+import { loadFamilyData, saveFamilyBudget, saveFamilyItems } from './firebase';
 
 const STORAGE_KEYS = {
     BUDGET: 'shopping_spree_budget',
@@ -14,8 +14,7 @@ const DEFAULT_BUDGET = {
 };
 
 const DEFAULT_SETTINGS = {
-    useFirebase: false,
-    firebaseConfig: null
+    useFirebase: false
 };
 
 // Local Storage Helpers
@@ -44,14 +43,24 @@ function isFirebaseEnabled() {
 }
 
 // Sync to Firebase (if enabled and online)
-async function syncToFirebase(budget, items) {
+async function syncBudgetToFirebase(budget) {
     if (!isFirebaseEnabled()) return;
 
     try {
-        await saveFamilyData({ budget, items });
+        await saveFamilyBudget(budget);
     } catch (error) {
         console.error('Firebase sync error:', error);
         // Continue working offline
+    }
+}
+
+async function syncItemsToFirebase(items) {
+    if (!isFirebaseEnabled()) return;
+
+    try {
+        await saveFamilyItems(items);
+    } catch (error) {
+        console.error('Firebase sync error:', error);
     }
 }
 
@@ -91,8 +100,7 @@ export const StorageService = {
         setLocal(STORAGE_KEYS.BUDGET, budget);
 
         // Sync to Firebase if enabled
-        const items = getLocal(STORAGE_KEYS.ITEMS, []);
-        await syncToFirebase(budget, items);
+        await syncBudgetToFirebase(budget);
     },
 
     // === ITEMS ===
@@ -122,8 +130,7 @@ export const StorageService = {
         setLocal(STORAGE_KEYS.ITEMS, items);
 
         // Sync to Firebase if enabled
-        const budget = getLocal(STORAGE_KEYS.BUDGET, DEFAULT_BUDGET);
-        await syncToFirebase(budget, items);
+        await syncItemsToFirebase(items);
     },
 
     // Low level adapter exposure if needed
