@@ -100,8 +100,8 @@ Example structure:
     },
     "family": {
       "shared": {
-        ".read": "auth != null && root.child('whitelist').child(auth.token.email.split(/[.#$\\[\\]\\/]/).join(',')).exists()",
-        ".write": "auth != null && root.child('whitelist').child(auth.token.email.split(/[.#$\\[\\]\\/]/).join(',')).exists()"
+        ".read": "auth != null && root.child('whitelist').child(auth.token.email.split('.').join(',').split('#').join(',').split('$').join(',').split('[').join(',').split(']').join(',').split('/').join(',')).exists()",
+        ".write": "auth != null && root.child('whitelist').child(auth.token.email.split('.').join(',').split('#').join(',').split('$').join(',').split('[').join(',').split(']').join(',').split('/').join(',')).exists()"
       }
     }
   }
