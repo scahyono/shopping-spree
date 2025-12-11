@@ -146,6 +146,16 @@ export function AppProvider({ children }) {
         // Optional: Deduct from Budget? User didn't specify auto-deduct, just manual budget tracking.
     };
 
+    const renameItem = (id, newName) => {
+        const trimmedName = newName.trim();
+        if (!trimmedName) return; // Reject empty names
+
+        setItems(prev => prev.map(item => {
+            if (item.id !== id) return item;
+            return { ...item, name: trimmedName };
+        }));
+    };
+
     // === DERIVED STATE ===
 
     const weeklyWantsRemaining = useMemo(() => {
@@ -177,7 +187,8 @@ export function AppProvider({ children }) {
             addItem,
             toggleStock,
             toggleShop,
-            markBought
+            markBought,
+            renameItem
         },
         computed: {
             weeklyWantsRemaining: weeklyWantsRemaining?.remaining || 0,

@@ -1,9 +1,20 @@
+import { useState, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Check, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { Check, Plus, ShoppingCart, Pencil } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function ItemCard({ item, mode }) {
     const { actions } = useApp();
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState(item.name);
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [isEditing]);
 
     const handleBuy = (e) => {
         // Trigger confetti from the click coordinates
@@ -25,10 +36,58 @@ export default function ItemCard({ item, mode }) {
         actions.toggleShop(item.id);
     };
 
+    const startEditing = () => {
+        setEditName(item.name);
+        setIsEditing(true);
+    };
+
+    const saveEdit = () => {
+        if (editName.trim()) {
+            actions.renameItem(item.id, editName);
+        } else {
+            setEditName(item.name); // Revert if empty
+        }
+        setIsEditing(false);
+    };
+
+    const cancelEdit = () => {
+        setEditName(item.name);
+        setIsEditing(false);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            saveEdit();
+        } else if (e.key === 'Escape') {
+            cancelEdit();
+        }
+    };
+
     return (
         <div className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop">
-            <div className="flex-1">
-                <h3 className="font-medium text-lg text-gray-800">{item.name}</h3>
+            <div className="flex-1 flex items-center gap-2">
+                {isEditing ? (
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={handleKeyDown}
+                        className="flex-1 font-medium text-lg text-gray-800 border-b-2 border-brand-500 outline-none bg-transparent"
+                    />
+                ) : (
+                    <>
+                        <h3 className="font-medium text-lg text-gray-800">{item.name}</h3>
+                        <button
+                            onClick={startEditing}
+                            className="p-1 hover:bg-gray-100 rounded transition-opacity"
+                            title="Rename"
+                        >
+                            <Pencil size={16} className="text-gray-400" />
+                        </button>
+                    </>
+                )}
                 {mode === 'stock' && item.isOnShoppingList && (
                     <span className="text-xs text-brand-500 font-bold bg-brand-50 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
                         <ShoppingCart size={10} /> To Buy
