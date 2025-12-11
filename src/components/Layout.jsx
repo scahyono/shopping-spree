@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Box } from 'lucide-react';
 import BudgetHeader from './BudgetHeader';
-import SyncControls from './SyncControls';
 
 export default function Layout({ children }) {
     const location = useLocation();
@@ -15,7 +14,6 @@ export default function Layout({ children }) {
 
             {/* Main Content Area - Scrollable */}
             <main className="flex-1 overflow-y-auto pb-24 relative p-4 space-y-4">
-                <SyncControls />
                 {children}
             </main>
 

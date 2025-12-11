@@ -45,6 +45,11 @@ export function waitForAuthReady() {
     });
 }
 
+export function onAuthChange(callback) {
+    const { auth } = initializeFirebase();
+    return onAuthStateChanged(auth, callback);
+}
+
 export async function signInWithGoogle() {
     const { auth } = initializeFirebase();
     const provider = new GoogleAuthProvider();
