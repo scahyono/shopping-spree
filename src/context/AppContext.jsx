@@ -55,6 +55,33 @@ export function AppProvider({ children }) {
         if (!loading) StorageService.saveItems(items);
     }, [items, loading]);
 
+    // Firebase Real-time Listener
+    useEffect(() => {
+        const settings = JSON.parse(localStorage.getItem('shopping_spree_settings') || '{}');
+        if (!settings.useFirebase || loading) return;
+
+        // Import Firebase listener dynamically
+        import('../services/firebase').then(({ listenToFamilyData, stopListening }) => {
+            const unsubscribe = listenToFamilyData((familyData) => {
+                // Update state from Firebase real-time updates
+                if (familyData.budget) {
+                    setBudget(familyData.budget);
+                    localStorage.setItem('shopping_spree_budget', JSON.stringify(familyData.budget));
+                }
+                if (familyData.items) {
+                    setItems(familyData.items);
+                    localStorage.setItem('shopping_spree_items', JSON.stringify(familyData.items));
+                }
+            });
+
+            return () => {
+                stopListening();
+            };
+        }).catch(err => {
+            console.error('Firebase listener error:', err);
+        });
+    }, [loading]);
+
     // === ACTIONS ===
 
     const updateBudget = (category, field, value) => {

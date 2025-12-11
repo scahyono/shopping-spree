@@ -1,3 +1,5 @@
+import { loadFamilyData, saveFamilyData } from './firebase';
+
 const STORAGE_KEYS = {
     BUDGET: 'shopping_spree_budget',
     ITEMS: 'shopping_spree_items',
@@ -8,7 +10,7 @@ const DEFAULT_BUDGET = {
     income: { target: 0, actual: 0 },
     needs: { target: 0, actual: 0 },
     future: { target: 0, actual: 0 },
-    wants: { target: 0, actual: 0 } // "actual" here tracks weekly spent
+    wants: { target: 0, actual: 0 }
 };
 
 const DEFAULT_SETTINGS = {
@@ -16,7 +18,7 @@ const DEFAULT_SETTINGS = {
     firebaseConfig: null
 };
 
-// Local Storage Internal Helpers
+// Local Storage Helpers
 const getLocal = (key, fallback) => {
     try {
         const stored = localStorage.getItem(key);
@@ -35,6 +37,24 @@ const setLocal = (key, value) => {
     }
 };
 
+// Check if Firebase is enabled
+function isFirebaseEnabled() {
+    const settings = getLocal(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    return settings.useFirebase === true;
+}
+
+// Sync to Firebase (if enabled and online)
+async function syncToFirebase(budget, items) {
+    if (!isFirebaseEnabled()) return;
+
+    try {
+        await saveFamilyData({ budget, items });
+    } catch (error) {
+        console.error('Firebase sync error:', error);
+        // Continue working offline
+    }
+}
+
 export const StorageService = {
     // === SETTINGS ===
     getSettings: async () => {
@@ -42,27 +62,68 @@ export const StorageService = {
     },
     saveSettings: async (settings) => {
         setLocal(STORAGE_KEYS.SETTINGS, settings);
-        // If switching to Firebase, init logic would go here
     },
 
     // === BUDGET ===
     getBudget: async () => {
-        // TODO: Add Firebase check
-        return getLocal(STORAGE_KEYS.BUDGET, DEFAULT_BUDGET);
+        // Always read from localStorage first (offline-first)
+        const localBudget = getLocal(STORAGE_KEYS.BUDGET, DEFAULT_BUDGET);
+
+        // If Firebase is enabled, try to load from cloud (but don't block)
+        if (isFirebaseEnabled()) {
+            try {
+                const familyData = await loadFamilyData();
+                if (familyData && familyData.budget) {
+                    // Merge cloud data with local (cloud wins)
+                    setLocal(STORAGE_KEYS.BUDGET, familyData.budget);
+                    return familyData.budget;
+                }
+            } catch (error) {
+                console.error('Firebase load error:', error);
+                // Fall back to local data
+            }
+        }
+
+        return localBudget;
     },
     saveBudget: async (budget) => {
-        // TODO: Add Firebase check
+        // Always save to localStorage first (offline-first)
         setLocal(STORAGE_KEYS.BUDGET, budget);
+
+        // Sync to Firebase if enabled
+        const items = getLocal(STORAGE_KEYS.ITEMS, []);
+        await syncToFirebase(budget, items);
     },
 
     // === ITEMS ===
     getItems: async () => {
-        // TODO: Add Firebase check
-        return getLocal(STORAGE_KEYS.ITEMS, []); // Returns array of Item objects
+        // Always read from localStorage first (offline-first)
+        const localItems = getLocal(STORAGE_KEYS.ITEMS, []);
+
+        // If Firebase is enabled, try to load from cloud (but don't block)
+        if (isFirebaseEnabled()) {
+            try {
+                const familyData = await loadFamilyData();
+                if (familyData && familyData.items) {
+                    // Merge cloud data with local (cloud wins)
+                    setLocal(STORAGE_KEYS.ITEMS, familyData.items);
+                    return familyData.items;
+                }
+            } catch (error) {
+                console.error('Firebase load error:', error);
+                // Fall back to local data
+            }
+        }
+
+        return localItems;
     },
     saveItems: async (items) => {
-        // TODO: Add Firebase check
+        // Always save to localStorage first (offline-first)
         setLocal(STORAGE_KEYS.ITEMS, items);
+
+        // Sync to Firebase if enabled
+        const budget = getLocal(STORAGE_KEYS.BUDGET, DEFAULT_BUDGET);
+        await syncToFirebase(budget, items);
     },
 
     // Low level adapter exposure if needed
