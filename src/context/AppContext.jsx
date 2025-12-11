@@ -24,6 +24,7 @@ export function AppProvider({ children }) {
     const [budget, setBudget] = useState(null);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isFirebaseUpdate, setIsFirebaseUpdate] = useState(false); // Flag to prevent save loop
 
     // Initial Load
     useEffect(() => {
@@ -46,14 +47,18 @@ export function AppProvider({ children }) {
         loadData();
     }, []);
 
-    // Persist on Changes
+    // Persist on Changes (but NOT when update comes from Firebase)
     useEffect(() => {
-        if (!loading) StorageService.saveBudget(budget);
-    }, [budget, loading]);
+        if (!loading && !isFirebaseUpdate) {
+            StorageService.saveBudget(budget);
+        }
+    }, [budget, loading, isFirebaseUpdate]);
 
     useEffect(() => {
-        if (!loading) StorageService.saveItems(items);
-    }, [items, loading]);
+        if (!loading && !isFirebaseUpdate) {
+            StorageService.saveItems(items);
+        }
+    }, [items, loading, isFirebaseUpdate]);
 
     // Firebase Real-time Listener
     useEffect(() => {
@@ -63,6 +68,9 @@ export function AppProvider({ children }) {
         // Import Firebase listener dynamically
         import('../services/firebase').then(({ listenToFamilyData, stopListening }) => {
             const unsubscribe = listenToFamilyData((familyData) => {
+                // Set flag to prevent save loop
+                setIsFirebaseUpdate(true);
+
                 // Update state from Firebase real-time updates
                 if (familyData.budget) {
                     setBudget(familyData.budget);
@@ -72,6 +80,9 @@ export function AppProvider({ children }) {
                     setItems(familyData.items);
                     localStorage.setItem('shopping_spree_items', JSON.stringify(familyData.items));
                 }
+
+                // Reset flag after state updates
+                setTimeout(() => setIsFirebaseUpdate(false), 100);
             });
 
             return () => {
