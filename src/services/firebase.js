@@ -45,10 +45,6 @@ export function waitForAuthReady() {
     });
 }
 
-function sanitizeEmail(email) {
-    return email.replace(/[.#$\[\]/]/g, ',');
-}
-
 export async function signInWithGoogle() {
     const { auth } = initializeFirebase();
     const provider = new GoogleAuthProvider();
@@ -56,7 +52,7 @@ export async function signInWithGoogle() {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    const isWhitelisted = await checkWhitelist(user.email);
+    const isWhitelisted = await checkWhitelist(user.uid);
     if (!isWhitelisted) {
         await firebaseSignOut(auth);
         throw new Error(`Email ${user.email} is not whitelisted. Contact admin.`);
@@ -65,10 +61,9 @@ export async function signInWithGoogle() {
     return user;
 }
 
-async function checkWhitelist(email) {
+async function checkWhitelist(uid) {
     const { database } = initializeFirebase();
-    const safeEmail = sanitizeEmail(email);
-    const whitelistRef = ref(database, `whitelist/${safeEmail}`);
+    const whitelistRef = ref(database, `whitelist/${uid}`);
     const snapshot = await get(whitelistRef);
     return snapshot.exists();
 }

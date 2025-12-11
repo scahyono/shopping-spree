@@ -77,13 +77,13 @@ Enable real-time data sync across family members using Firebase Realtime Databas
 4. Create a **Realtime Database** (start in locked mode)
 
 #### 2. Seed Whitelist Entries
-In the Realtime Database, add a `whitelist` node. Inside it, create child keys for each approved email address. Replace forbidden characters in the email (`. # $ [ ] /`) with commas.
+In the Realtime Database, add a `whitelist` node. Inside it, create child keys using **Firebase Auth UIDs** for every allowed account (found in the Firebase Authentication user list). Set the value to `true` for each UID you want to allow.
 
 Example structure:
 ```json
 {
   "whitelist": {
-    "family,member@gmail,com": true
+    "Wv0ExampleUid123": true
   }
 }
 ```
@@ -93,15 +93,15 @@ Example structure:
 {
   "rules": {
     "whitelist": {
-      "$email": {
+      "$uid": {
         ".read": "auth != null",
         ".write": "false"
       }
     },
     "family": {
       "shared": {
-        ".read": "auth != null && root.child('whitelist').child(auth.token.email.split('.').join(',').split('#').join(',').split('$').join(',').split('[').join(',').split(']').join(',').split('/').join(',')).exists()",
-        ".write": "auth != null && root.child('whitelist').child(auth.token.email.split('.').join(',').split('#').join(',').split('$').join(',').split('[').join(',').split(']').join(',').split('/').join(',')).exists()"
+        ".read": "auth != null && root.child('whitelist').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()"
       }
     }
   }
