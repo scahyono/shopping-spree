@@ -3,7 +3,6 @@ import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
 import ShopPage from './pages/Shop';
 import StockPage from './pages/Stock';
-import SettingsPage from './pages/Settings';
 
 function App() {
   return (
@@ -13,7 +12,6 @@ function App() {
           <Routes>
             <Route path="/" element={<ShopPage />} />
             <Route path="/stock" element={<StockPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Layout>
       </HashRouter>

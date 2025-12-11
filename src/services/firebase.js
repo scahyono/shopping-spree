@@ -1,125 +1,136 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { getDatabase, get, off, onValue, ref, update } from 'firebase/database';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDks3_CoJfEpj2bqTCGeQZhGibXgY9n9l8",
+    authDomain: "shopping-spree-94c4d.firebaseapp.com",
+    projectId: "shopping-spree-94c4d",
+    storageBucket: "shopping-spree-94c4d.firebasestorage.app",
+    messagingSenderId: "289860492862",
+    appId: "1:289860492862:web:63f3b31fe637472280fb6f",
+    databaseURL: "https://shopping-spree-94c4d-default-rtdb.firebaseio.com"
+};
 
 let firebaseApp = null;
 let auth = null;
-let db = null;
-let unsubscribe = null;
+let database = null;
+const listeners = [];
 
-// Initialize Firebase with user-provided config from localStorage
-export function initializeFirebase() {
-    const settings = JSON.parse(localStorage.getItem('shopping_spree_settings') || '{}');
-    const config = settings.firebaseConfig;
-
-    if (!config) {
-        throw new Error('Firebase config not found in settings');
-    }
-
+function initializeFirebase() {
     if (!firebaseApp) {
-        firebaseApp = initializeApp(config);
+        firebaseApp = initializeApp(firebaseConfig);
         auth = getAuth(firebaseApp);
-        db = getFirestore(firebaseApp);
+        database = getDatabase(firebaseApp);
     }
 
-    return { auth, db };
+    return { auth, database };
 }
 
-// Google Sign-In
+function sanitizeEmail(email) {
+    return email.replace(/[.#$\[\]/]/g, ',');
+}
+
 export async function signInWithGoogle() {
     const { auth } = initializeFirebase();
     const provider = new GoogleAuthProvider();
 
-    try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
 
-        // Check whitelist
-        const isWhitelisted = await checkWhitelist(user.email);
-        if (!isWhitelisted) {
-            await firebaseSignOut(auth);
-            throw new Error(`Email ${user.email} is not whitelisted. Contact admin.`);
-        }
-
-        return user;
-    } catch (error) {
-        console.error('Sign-in error:', error);
-        throw error;
+    const isWhitelisted = await checkWhitelist(user.email);
+    if (!isWhitelisted) {
+        await firebaseSignOut(auth);
+        throw new Error(`Email ${user.email} is not whitelisted. Contact admin.`);
     }
+
+    return user;
 }
 
-// Check if email is in whitelist
 async function checkWhitelist(email) {
-    const { db } = initializeFirebase();
-    const whitelistDoc = doc(db, 'whitelist', email);
-    const snapshot = await getDoc(whitelistDoc);
+    const { database } = initializeFirebase();
+    const safeEmail = sanitizeEmail(email);
+    const whitelistRef = ref(database, `whitelist/${safeEmail}`);
+    const snapshot = await get(whitelistRef);
     return snapshot.exists();
 }
 
-// Sign out
 export async function signOut() {
-    if (auth) {
-        await firebaseSignOut(auth);
-    }
+    if (!auth) return;
+    await firebaseSignOut(auth);
 }
 
-// Get current user
 export function getCurrentUser() {
     return auth?.currentUser || null;
 }
 
-// Load shared family data from Firestore
 export async function loadFamilyData() {
-    const { db } = initializeFirebase();
-    const familyDoc = doc(db, 'family', 'shared');
-    const snapshot = await getDoc(familyDoc);
-
-    if (snapshot.exists()) {
-        return snapshot.data();
-    }
-    return null;
+    const { database } = initializeFirebase();
+    const familyRef = ref(database, 'family/shared');
+    const snapshot = await get(familyRef);
+    return snapshot.exists() ? snapshot.val() : null;
 }
 
-// Save shared family data to Firestore
-export async function saveFamilyData(data) {
-    const { db, auth } = initializeFirebase();
+export async function saveFamilyBudget(budget) {
+    const { database, auth } = initializeFirebase();
     const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
 
-    if (!user) {
-        throw new Error('User not authenticated');
-    }
-
-    const familyDoc = doc(db, 'family', 'shared');
-    await setDoc(familyDoc, {
-        ...data,
+    const familyRef = ref(database, 'family/shared');
+    await update(familyRef, {
+        budget,
         lastModified: new Date().toISOString(),
         lastModifiedBy: user.email
     });
 }
 
-// Listen to real-time updates on shared family data
-export function listenToFamilyData(callback) {
-    const { db } = initializeFirebase();
-    const familyDoc = doc(db, 'family', 'shared');
+export async function saveFamilyItems(items) {
+    const { database, auth } = initializeFirebase();
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
 
-    // Unsubscribe from previous listener if exists
-    if (unsubscribe) {
-        unsubscribe();
-    }
-
-    unsubscribe = onSnapshot(familyDoc, (snapshot) => {
-        if (snapshot.exists()) {
-            callback(snapshot.data());
-        }
+    const familyRef = ref(database, 'family/shared');
+    await update(familyRef, {
+        items,
+        lastModified: new Date().toISOString(),
+        lastModifiedBy: user.email
     });
-
-    return unsubscribe;
 }
 
-// Stop listening to updates
+export function listenToFamilyBudget(callback) {
+    const { database } = initializeFirebase();
+    const budgetRef = ref(database, 'family/shared/budget');
+
+    const handler = (snapshot) => {
+        if (snapshot.exists()) {
+            callback(snapshot.val());
+        }
+    };
+
+    onValue(budgetRef, handler);
+    listeners.push({ ref: budgetRef, handler });
+
+    return () => off(budgetRef, 'value', handler);
+}
+
+export function listenToFamilyItems(callback) {
+    const { database } = initializeFirebase();
+    const itemsRef = ref(database, 'family/shared/items');
+
+    const handler = (snapshot) => {
+        if (snapshot.exists()) {
+            callback(snapshot.val());
+        }
+    };
+
+    onValue(itemsRef, handler);
+    listeners.push({ ref: itemsRef, handler });
+
+    return () => off(itemsRef, 'value', handler);
+}
+
 export function stopListening() {
-    if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
-    }
+    listeners.splice(0).forEach(({ ref: targetRef, handler }) => {
+        off(targetRef, 'value', handler);
+    });
 }
