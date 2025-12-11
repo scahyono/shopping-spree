@@ -9,7 +9,7 @@ const firebaseConfig = {
     storageBucket: "shopping-spree-94c4d.firebasestorage.app",
     messagingSenderId: "289860492862",
     appId: "1:289860492862:web:63f3b31fe637472280fb6f",
-    databaseURL: "https://shopping-spree-94c4d-default-rtdb.europe-west1.firebasedatabase.app/"
+    databaseURL: "https://shopping-spree-94c4d-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
 let firebaseApp = null;
