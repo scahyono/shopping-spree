@@ -36,13 +36,16 @@ export function AppProvider({ children }) {
                 StorageService.getItems()
             ]);
 
+            // Ensure loadedItems is always an array (final safety check)
+            const safeItems = Array.isArray(loadedItems) ? loadedItems : [];
+
             // DEMO DATA INJECTION
-            if ((!loadedItems || loadedItems.length === 0) && (!loadedBudget || loadedBudget.income.target === 0)) {
+            if ((safeItems.length === 0) && (!loadedBudget || loadedBudget.income.target === 0)) {
                 setBudget(DEMO_BUDGET);
                 setItems(DEMO_ITEMS);
             } else {
                 setBudget(loadedBudget);
-                setItems(loadedItems);
+                setItems(safeItems);
             }
             setLoading(false);
         };

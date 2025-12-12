@@ -92,16 +92,30 @@ export const StorageService = {
     // === ITEMS ===
     getItems: async () => {
         // Always read from localStorage first (offline-first)
-        const localItems = getLocal(STORAGE_KEYS.ITEMS, []);
+        let localItems = getLocal(STORAGE_KEYS.ITEMS, []);
+
+        // Ensure localItems is an array (handle old object format)
+        if (!Array.isArray(localItems)) {
+            localItems = localItems && typeof localItems === 'object'
+                ? Object.values(localItems)
+                : [];
+        }
 
         // If Firebase is enabled, try to load from cloud (but don't block)
         if (isFirebaseEnabled()) {
             try {
                 const familyData = await loadFamilyData();
                 if (familyData && familyData.items) {
+                    // Ensure items is an array
+                    let items = familyData.items;
+                    if (!Array.isArray(items)) {
+                        items = items && typeof items === 'object'
+                            ? Object.values(items)
+                            : [];
+                    }
                     // Merge cloud data with local (cloud wins)
-                    setLocal(STORAGE_KEYS.ITEMS, familyData.items);
-                    return familyData.items;
+                    setLocal(STORAGE_KEYS.ITEMS, items);
+                    return items;
                 }
             } catch (error) {
                 console.error('Firebase load error:', error);
