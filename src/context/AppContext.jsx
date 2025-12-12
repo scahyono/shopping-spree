@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, useRef } from 
 import { StorageService } from '../services/storage';
 import { countSaturdays, getCurrentWeekNumber } from '../utils/dateHelpers';
 import { calculateIncomeActual, calculateWantsTarget, calculateWeeklyRemaining } from '../utils/budgetCalculations';
-import { onAuthChange } from '../services/firebase';
+import { onAuthChange, updateBudgetField, updateItem as firebaseUpdateItem } from '../services/firebase';
 
 const AppContext = createContext();
 
@@ -92,8 +92,10 @@ export function AppProvider({ children }) {
             const unsubscribeItems = listenToFamilyItems((familyItems) => {
                 if (!familyItems) return;
                 isFirebaseUpdateRef.current = true;
-                setItems(familyItems);
-                localStorage.setItem('shopping_spree_items', JSON.stringify(familyItems));
+                // Ensure familyItems is always an array
+                const itemsArray = Array.isArray(familyItems) ? familyItems : [];
+                setItems(itemsArray);
+                localStorage.setItem('shopping_spree_items', JSON.stringify(itemsArray));
             });
 
             cleanup = () => {
@@ -144,6 +146,20 @@ export function AppProvider({ children }) {
 
             nextBudget.wants.target = calculateWantsTarget(incomeTarget, needsTarget, futureTarget);
 
+            // Sync to Firebase granularly if user is authenticated
+            if (currentUser) {
+                // Sync the directly updated field
+                updateBudgetField(category, field, Number(value)).catch(console.error);
+
+                // Sync derived fields
+                if (category === 'needs' || category === 'future' || category === 'wants') {
+                    updateBudgetField('income', 'actual', nextBudget.income.actual).catch(console.error);
+                }
+                if (category === 'income' || category === 'needs' || category === 'future') {
+                    updateBudgetField('wants', 'target', nextBudget.wants.target).catch(console.error);
+                }
+            }
+
             return nextBudget;
         });
     };
@@ -168,6 +184,12 @@ export function AppProvider({ children }) {
             isInStock: false,
             isOnShoppingList: false
         };
+
+        // Sync to Firebase granularly
+        if (currentUser) {
+            firebaseUpdateItem(newItem).catch(console.error);
+        }
+
         setItems(prev => [...prev, newItem]);
         return newItem;
     };
@@ -175,14 +197,28 @@ export function AppProvider({ children }) {
     const toggleStock = (id) => {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            return { ...item, isInStock: !item.isInStock };
+            const updatedItem = { ...item, isInStock: !item.isInStock };
+
+            // Sync to Firebase granularly
+            if (currentUser) {
+                firebaseUpdateItem(updatedItem).catch(console.error);
+            }
+
+            return updatedItem;
         }));
     };
 
     const toggleShop = (id) => {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            return { ...item, isOnShoppingList: !item.isOnShoppingList };
+            const updatedItem = { ...item, isOnShoppingList: !item.isOnShoppingList };
+
+            // Sync to Firebase granularly
+            if (currentUser) {
+                firebaseUpdateItem(updatedItem).catch(console.error);
+            }
+
+            return updatedItem;
         }));
     };
 
@@ -192,11 +228,18 @@ export function AppProvider({ children }) {
             // Logic: Remove from Shop. 
             // If it was in stock, it stays in stock (just replenished).
             // If it wasn't in stock, it becomes hidden.
-            return {
+            const updatedItem = {
                 ...item,
                 isOnShoppingList: false
                 // We don't touch isInStock. If it was true, it remains true (permanent stock item).
             };
+
+            // Sync to Firebase granularly
+            if (currentUser) {
+                firebaseUpdateItem(updatedItem).catch(console.error);
+            }
+
+            return updatedItem;
         }));
         // Optional: Deduct from Budget? User didn't specify auto-deduct, just manual budget tracking.
     };
@@ -207,14 +250,28 @@ export function AppProvider({ children }) {
 
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            return { ...item, name: trimmedName };
+            const updatedItem = { ...item, name: trimmedName };
+
+            // Sync to Firebase granularly
+            if (currentUser) {
+                firebaseUpdateItem(updatedItem).catch(console.error);
+            }
+
+            return updatedItem;
         }));
     };
 
     const hideItem = (id) => {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            return { ...item, isInStock: false, isOnShoppingList: false };
+            const updatedItem = { ...item, isInStock: false, isOnShoppingList: false };
+
+            // Sync to Firebase granularly
+            if (currentUser) {
+                firebaseUpdateItem(updatedItem).catch(console.error);
+            }
+
+            return updatedItem;
         }));
     };
 
