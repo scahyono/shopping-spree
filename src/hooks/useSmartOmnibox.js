@@ -70,6 +70,9 @@ export function useSmartOmnibox({
 
     const handleChange = (e) => {
         const rawValue = e.target.value;
+        const selectionStart = e.target.selectionStart ?? rawValue.length;
+        const selectionEnd = e.target.selectionEnd ?? selectionStart;
+        const manualInput = rawValue.slice(0, selectionStart);
         const inputType = e.inputType || e.nativeEvent?.inputType;
         const isDelete = inputType === 'deleteContentBackward' || lastBackspaceRef.current;
         const isInsert = inputType?.startsWith('insert') ?? !isDelete;
@@ -90,8 +93,8 @@ export function useSmartOmnibox({
 
         setAutocompletePaused(nextPaused);
 
-        setBaseQuery(rawValue);
-        applyAutocomplete(rawValue, skipThisChange ? true : nextPaused);
+        setBaseQuery(manualInput);
+        applyAutocomplete(manualInput, skipThisChange ? true : nextPaused);
     };
 
     const handleBackspace = (e) => {
