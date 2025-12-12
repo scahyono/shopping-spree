@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Check, Plus, ShoppingCart, Pencil } from 'lucide-react';
+import { Check, EyeOff, Plus, ShoppingCart, Pencil } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function ItemCard({ item, mode }) {
@@ -34,6 +34,10 @@ export default function ItemCard({ item, mode }) {
 
     const handleAddToShop = () => {
         actions.toggleShop(item.id);
+    };
+
+    const handleHideFromStock = () => {
+        actions.hideItem(item.id);
     };
 
     const startEditing = () => {
@@ -120,7 +124,15 @@ export default function ItemCard({ item, mode }) {
                     </button>
                 )}
 
-                {/* Optional: Add remove/hidden logic if needed, but requirements focused on the flow */}
+                {mode === 'stock' && (
+                    <button
+                        onClick={handleHideFromStock}
+                        className="w-10 h-10 rounded-full flex items-center justify-center transition-colors active:scale-90 bg-red-50 text-red-500 hover:bg-red-100"
+                        title="Hide from Stock"
+                    >
+                        <EyeOff size={18} />
+                    </button>
+                )}
             </div>
         </div>
     );

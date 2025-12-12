@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import ItemCard from '../components/ItemCard';
-import { Ghost, Search, Plus } from 'lucide-react';
+import { Ghost, ShoppingCart } from 'lucide-react';
 
 export default function ShopPage() {
     const { items, actions } = useApp();
@@ -31,7 +31,7 @@ export default function ShopPage() {
             {/* Search / Add Bar */}
             <form onSubmit={handleAdd} className="sticky top-0 bg-brand-50 pt-2 pb-4 z-10">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <ShoppingCart className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
                         type="text"
                         placeholder="Add to list..."
@@ -44,7 +44,7 @@ export default function ShopPage() {
                         disabled={!query}
                         className="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-500 text-white p-1.5 rounded-lg disabled:opacity-50"
                     >
-                        <Plus size={20} />
+                        <ShoppingCart size={20} />
                     </button>
                 </div>
             </form>

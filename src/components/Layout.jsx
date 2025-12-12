@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Box } from 'lucide-react';
+import { ShoppingCart, Box } from 'lucide-react';
 import BudgetHeader from './BudgetHeader';
 
 export default function Layout({ children }) {
@@ -21,7 +21,7 @@ export default function Layout({ children }) {
             <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-brand-100 shadow-lg pb-safe">
                 <div className="flex justify-around items-center h-16">
                     <Link to="/" className={`flex flex-col items-center justify-center w-full h-full transition-colors ${isActive('/') ? 'text-brand-600' : 'text-gray-400'}`}>
-                        <ShoppingBag size={24} />
+                        <ShoppingCart size={24} />
                         <span className="text-xs font-medium mt-1">Shop</span>
                     </Link>
 

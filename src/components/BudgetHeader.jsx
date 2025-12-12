@@ -14,15 +14,8 @@ export default function BudgetHeader() {
 
     return (
         <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
-            <div className="absolute right-2 top-2">
-                <SyncControls compact />
-            </div>
-            {/* The Single Truth */}
-            <div
-                onClick={() => setExpanded(!expanded)}
-                className="p-3 pt-12 text-center cursor-pointer active:opacity-90 transition-opacity"
-            >
-                <div className="flex items-center justify-between px-2 mb-1">
+            <div className="flex items-center justify-between px-4 pt-3">
+                <div className="flex items-center gap-2">
                     <div className="opacity-80 text-xs font-medium uppercase tracking-wider">
                         Weekly Wants
                     </div>
@@ -30,7 +23,13 @@ export default function BudgetHeader() {
                         Week {computed.currentWeek} / {computed.totalWeeks}
                     </div>
                 </div>
-
+                <SyncControls compact />
+            </div>
+            {/* The Single Truth */}
+            <div
+                onClick={() => setExpanded(!expanded)}
+                className="p-3 pb-4 text-center cursor-pointer active:opacity-90 transition-opacity"
+            >
                 <div className={`text-3xl font-bold tracking-tight transition-colors duration-300 ${isNegative ? 'text-red-200' : 'text-white'}`}>
                     {Math.floor(remaining)}
                 </div>

@@ -1,9 +1,8 @@
-import { loadFamilyData, saveFamilyBudget, saveFamilyItems } from './firebase';
+import { getCurrentUser, loadFamilyData, saveFamilyBudget, saveFamilyItems } from './firebase';
 
 const STORAGE_KEYS = {
     BUDGET: 'shopping_spree_budget',
-    ITEMS: 'shopping_spree_items',
-    SETTINGS: 'shopping_spree_settings'
+    ITEMS: 'shopping_spree_items'
 };
 
 const DEFAULT_BUDGET = {
@@ -11,10 +10,6 @@ const DEFAULT_BUDGET = {
     needs: { target: 0, actual: 0 },
     future: { target: 0, actual: 0 },
     wants: { target: 0, actual: 0 }
-};
-
-const DEFAULT_SETTINGS = {
-    useFirebase: false
 };
 
 // Local Storage Helpers
@@ -38,8 +33,7 @@ const setLocal = (key, value) => {
 
 // Check if Firebase is enabled
 function isFirebaseEnabled() {
-    const settings = getLocal(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
-    return settings.useFirebase === true;
+    return Boolean(getCurrentUser());
 }
 
 // Sync to Firebase (if enabled and online)
@@ -65,14 +59,6 @@ async function syncItemsToFirebase(items) {
 }
 
 export const StorageService = {
-    // === SETTINGS ===
-    getSettings: async () => {
-        return getLocal(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
-    },
-    saveSettings: async (settings) => {
-        setLocal(STORAGE_KEYS.SETTINGS, settings);
-    },
-
     // === BUDGET ===
     getBudget: async () => {
         // Always read from localStorage first (offline-first)
