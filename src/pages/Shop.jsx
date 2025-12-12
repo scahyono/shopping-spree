@@ -13,6 +13,7 @@ export default function ShopPage() {
     const displayItems = query
         ? shopItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
         : shopItems;
+    const sortedDisplayItems = [...displayItems].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     const handleAdd = (e) => {
         e.preventDefault();
@@ -58,7 +59,7 @@ export default function ShopPage() {
                     <p className="text-sm">Check Stock to add items.</p>
                 </div>
             ) : (
-                displayItems.map(item => (
+                sortedDisplayItems.map(item => (
                     <ItemCard key={item.id} item={item} mode="shop" />
                 ))
             )}
