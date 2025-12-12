@@ -173,6 +173,7 @@ export function useSmartOmnibox({
         handleChange,
         handleKeyDown,
         handleSubmit,
+        clearInput,
     };
 }
 

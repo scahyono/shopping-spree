@@ -15,7 +15,7 @@ export default function SmartOmnibox({
 }) {
     const inputRef = useRef(null);
 
-    const { value, handleChange, handleKeyDown, handleSubmit } = useSmartOmnibox({
+    const { value, handleChange, handleKeyDown, handleSubmit, clearInput } = useSmartOmnibox({
         items,
         isActive,
         activateItem,
@@ -33,12 +33,24 @@ export default function SmartOmnibox({
                     ref={inputRef}
                     type="text"
                     placeholder={placeholder}
-                    className="w-full bg-white rounded-xl py-3 pl-10 pr-12 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                    className="w-full bg-white rounded-xl py-3 pl-10 pr-28 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
                     value={value}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     aria-label={placeholder}
                 />
+                {value.trim() && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            clearInput();
+                            inputRef.current?.focus();
+                        }}
+                        className="absolute right-12 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                        Clear
+                    </button>
+                )}
                 <button
                     type="submit"
                     disabled={!value.trim()}
