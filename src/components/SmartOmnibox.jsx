@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Search } from 'lucide-react';
+import { Search, XCircle } from 'lucide-react';
 import useSmartOmnibox from '../hooks/useSmartOmnibox';
 
 export default function SmartOmnibox({
@@ -15,7 +15,7 @@ export default function SmartOmnibox({
 }) {
     const inputRef = useRef(null);
 
-    const { value, handleChange, handleKeyDown, handleSubmit } = useSmartOmnibox({
+    const { value, handleChange, handleKeyDown, handleSubmit, clearInput } = useSmartOmnibox({
         items,
         isActive,
         activateItem,
@@ -33,12 +33,25 @@ export default function SmartOmnibox({
                     ref={inputRef}
                     type="text"
                     placeholder={placeholder}
-                    className="w-full bg-white rounded-xl py-3 pl-10 pr-12 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                    className="w-full bg-white rounded-xl py-3 pl-10 pr-28 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
                     value={value}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     aria-label={placeholder}
                 />
+                {value.trim() && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            clearInput();
+                            inputRef.current?.focus();
+                        }}
+                        className="absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-white"
+                        aria-label="Clear filter"
+                    >
+                        <XCircle size={18} aria-hidden />
+                    </button>
+                )}
                 <button
                     type="submit"
                     disabled={!value.trim()}

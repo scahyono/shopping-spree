@@ -79,11 +79,7 @@ export default function ItemCard({ item, mode }) {
     const getActiveAction = (offset) => {
         if (Math.abs(offset) < 10) return null;
 
-        if (mode === 'shop') {
-            return offset > 0 ? 'buy' : 'hide';
-        }
-
-        return offset > 0 ? 'shop' : 'hide';
+        return offset < 0 ? 'hide' : null;
     };
 
     const resetDrag = () => {
@@ -102,7 +98,7 @@ export default function ItemCard({ item, mode }) {
         if (!isDragging || !dragStartRef.current || dragStartRef.current.source !== source) return;
         lastPointerRef.current = point;
         const deltaX = point.x - dragStartRef.current.x;
-        setDragOffset(deltaX);
+        setDragOffset(Math.min(deltaX, 0));
     };
 
     const endDrag = (source) => {
@@ -111,10 +107,6 @@ export default function ItemCard({ item, mode }) {
 
         if (action === 'hide') {
             actions.hideItem(item.id);
-        } else if (action === 'shop') {
-            actions.toggleShop(item.id);
-        } else if (action === 'buy') {
-            handleBuy(null, lastPointerRef.current);
         }
 
         resetDrag();
@@ -123,6 +115,7 @@ export default function ItemCard({ item, mode }) {
     const handlePointerDown = (e) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (dragStartRef.current?.source === 'touch') return;
+        e.stopPropagation();
         startDrag({ x: e.clientX, y: e.clientY }, 'pointer');
     };
 
@@ -130,12 +123,14 @@ export default function ItemCard({ item, mode }) {
         updateDrag({ x: e.clientX, y: e.clientY }, 'pointer');
     };
 
-    const handlePointerEnd = () => {
+    const handlePointerEnd = (e) => {
+        e.stopPropagation();
         endDrag('pointer');
     };
 
     const handleTouchStart = (e) => {
         if (!e.touches?.length) return;
+        e.stopPropagation();
         startDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
     };
 
@@ -146,6 +141,7 @@ export default function ItemCard({ item, mode }) {
 
     const handleTouchEnd = (e) => {
         if (!e.changedTouches?.length) return;
+        e.stopPropagation();
         lastPointerRef.current = {
             x: e.changedTouches[0].clientX,
             y: e.changedTouches[0].clientY
@@ -154,15 +150,7 @@ export default function ItemCard({ item, mode }) {
     };
 
     const activeAction = getActiveAction(dragOffset);
-    const rightActionLabel =
-        mode === 'shop'
-            ? 'Swipe right to mark bought'
-            : item.isOnShoppingList
-                ? 'Swipe right to remove from buy'
-                : 'Swipe right to add to buy';
     const leftActionLabel = 'Swipe left to hide';
-    const rightActionColor = mode === 'shop' ? 'text-emerald-700' : 'text-brand-700';
-    const rightBg = mode === 'shop' ? 'bg-emerald-50' : 'bg-brand-50';
     const leftBg = 'bg-red-50';
 
     return (
@@ -177,12 +165,9 @@ export default function ItemCard({ item, mode }) {
             onTouchEnd={handleTouchEnd}
         >
             <div
-                className={`absolute inset-0 rounded-xl px-4 flex items-center justify-between select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : activeAction ? rightBg : 'bg-gray-50'}`}
+                className={`absolute inset-0 rounded-xl px-4 flex items-center justify-end select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : 'bg-gray-50'}`}
                 style={{ touchAction: 'pan-y' }}
             >
-                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap ${rightActionColor} transition-opacity ${dragOffset > 10 ? 'opacity-100' : 'opacity-40'}`}>
-                    {rightActionLabel}
-                </span>
                 <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap text-red-500 text-right transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
                     {leftActionLabel}
                 </span>
