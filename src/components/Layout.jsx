@@ -1,11 +1,35 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Box } from 'lucide-react';
 import BudgetHeader from './BudgetHeader';
 
 export default function Layout({ children }) {
     const location = useLocation();
+    const navigate = useNavigate();
+    const touchStartRef = useRef(null);
 
     const isActive = (path) => location.pathname === path;
+
+    const handlePointerDown = (e) => {
+        if (e.pointerType !== 'touch') return;
+        touchStartRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handlePointerUp = (e) => {
+        if (e.pointerType !== 'touch' || !touchStartRef.current) return;
+        const dx = e.clientX - touchStartRef.current.x;
+        const dy = e.clientY - touchStartRef.current.y;
+
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+            if (dx < 0 && !isActive('/stock')) {
+                navigate('/stock');
+            } else if (dx > 0 && !isActive('/')) {
+                navigate('/');
+            }
+        }
+
+        touchStartRef.current = null;
+    };
 
     return (
         <div className="flex flex-col h-screen bg-brand-50 text-gray-800 font-sans overflow-hidden">
@@ -13,7 +37,11 @@ export default function Layout({ children }) {
             <BudgetHeader />
 
             {/* Main Content Area - Scrollable */}
-            <main className="flex-1 overflow-y-auto pb-24 relative p-4 space-y-4">
+            <main
+                className="flex-1 overflow-y-auto pb-24 relative p-4 space-y-4"
+                onPointerDown={handlePointerDown}
+                onPointerUp={handlePointerUp}
+            >
                 {children}
             </main>
 
