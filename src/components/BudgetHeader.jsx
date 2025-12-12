@@ -14,29 +14,29 @@ export default function BudgetHeader() {
 
     return (
         <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
-            <div className="absolute right-2 top-2">
-                <SyncControls compact />
-            </div>
-            {/* The Single Truth */}
-            <div
-                onClick={() => setExpanded(!expanded)}
-                className="p-3 pt-12 text-center cursor-pointer active:opacity-90 transition-opacity"
-            >
-                <div className="flex items-center justify-between px-2 mb-1">
-                    <div className="opacity-80 text-xs font-medium uppercase tracking-wider">
-                        Weekly Wants
-                    </div>
-                    <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90">
+            <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
+                <div className="flex flex-col gap-1">
+                    <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Wants</div>
+                    <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
                         Week {computed.currentWeek} / {computed.totalWeeks}
                     </div>
                 </div>
+                {/* The Single Truth */}
+                <button
+                    type="button"
+                    onClick={() => setExpanded(!expanded)}
+                    className="justify-self-center flex flex-col items-center justify-center gap-1 text-center cursor-pointer active:opacity-90 transition-opacity"
+                >
+                    <div className={`text-3xl font-bold tracking-tight transition-colors duration-300 ${isNegative ? 'text-red-200' : 'text-white'}`}>
+                        {Math.floor(remaining)}
+                    </div>
 
-                <div className={`text-3xl font-bold tracking-tight transition-colors duration-300 ${isNegative ? 'text-red-200' : 'text-white'}`}>
-                    {Math.floor(remaining)}
-                </div>
-
-                <div className="flex justify-center -mt-1 opacity-50">
-                    {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    <div className="flex justify-center -mt-1 opacity-50">
+                        {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                </button>
+                <div className="flex justify-end">
+                    <SyncControls compact />
                 </div>
             </div>
 

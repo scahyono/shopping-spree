@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, useRef } from 
 import { StorageService } from '../services/storage';
 import { countSaturdays, getCurrentWeekNumber } from '../utils/dateHelpers';
 import { calculateIncomeActual, calculateWantsTarget, calculateWeeklyRemaining } from '../utils/budgetCalculations';
+import { onAuthChange } from '../services/firebase';
 
 const AppContext = createContext();
 
@@ -24,6 +25,7 @@ export function AppProvider({ children }) {
     const [budget, setBudget] = useState(null);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null);
     const isFirebaseUpdateRef = useRef(false); // Use ref for synchronous flag
 
     // Initial Load
@@ -47,6 +49,14 @@ export function AppProvider({ children }) {
         loadData();
     }, []);
 
+    useEffect(() => {
+        const unsubscribe = onAuthChange((user) => {
+            setCurrentUser(user);
+        });
+
+        return () => unsubscribe?.();
+    }, []);
+
     // Persist on Changes (but NOT when update comes from Firebase)
     useEffect(() => {
         if (!loading && !isFirebaseUpdateRef.current) {
@@ -66,20 +76,12 @@ export function AppProvider({ children }) {
 
     // Firebase Real-time Listener
     useEffect(() => {
-        const settings = JSON.parse(localStorage.getItem('shopping_spree_settings') || '{}');
-        if (!settings.useFirebase || loading) return;
+        if (loading || !currentUser) return;
 
         let cleanup;
 
         // Import Firebase listeners dynamically
-        import('../services/firebase').then(async ({ listenToFamilyBudget, listenToFamilyItems, stopListening, waitForAuthReady }) => {
-            const user = await waitForAuthReady();
-            if (!user) {
-                console.warn('Firebase sync skipped because no signed-in user was found.');
-                await StorageService.saveSettings({ useFirebase: false });
-                return;
-            }
-
+        import('../services/firebase').then(async ({ listenToFamilyBudget, listenToFamilyItems, stopListening }) => {
             const unsubscribeBudget = listenToFamilyBudget((familyBudget) => {
                 if (!familyBudget) return;
                 isFirebaseUpdateRef.current = true;
@@ -106,7 +108,7 @@ export function AppProvider({ children }) {
         return () => {
             cleanup?.();
         };
-    }, [loading]);
+    }, [loading, currentUser]);
 
     // === ACTIONS ===
 
@@ -209,6 +211,13 @@ export function AppProvider({ children }) {
         }));
     };
 
+    const hideItem = (id) => {
+        setItems(prev => prev.map(item => {
+            if (item.id !== id) return item;
+            return { ...item, isInStock: false, isOnShoppingList: false };
+        }));
+    };
+
     // === DERIVED STATE ===
 
     const weeklyWantsRemaining = useMemo(() => {
@@ -241,7 +250,8 @@ export function AppProvider({ children }) {
             toggleStock,
             toggleShop,
             markBought,
-            renameItem
+            renameItem,
+            hideItem
         },
         computed: {
             weeklyWantsRemaining: weeklyWantsRemaining?.remaining || 0,

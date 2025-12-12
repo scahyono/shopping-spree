@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "deploy": "vite build && gh-pages -d dist"
+    "deploy": "vite build --outDir docs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

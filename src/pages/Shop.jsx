@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import ItemCard from '../components/ItemCard';
-import { Ghost, Search, Plus } from 'lucide-react';
+import { Ghost, Search, ShoppingCart } from 'lucide-react';
 
 export default function ShopPage() {
     const { items, actions } = useApp();
@@ -28,13 +28,15 @@ export default function ShopPage() {
 
     return (
         <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Shopping List</h2>
+
             {/* Search / Add Bar */}
             <form onSubmit={handleAdd} className="sticky top-0 bg-brand-50 pt-2 pb-4 z-10">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
                         type="text"
-                        placeholder="Add to list..."
+                        placeholder="Search or Add item..."
                         className="w-full bg-white rounded-xl py-3 pl-10 pr-12 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -44,12 +46,10 @@ export default function ShopPage() {
                         disabled={!query}
                         className="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-500 text-white p-1.5 rounded-lg disabled:opacity-50"
                     >
-                        <Plus size={20} />
+                        <ShoppingCart size={20} />
                     </button>
                 </div>
             </form>
-
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Shopping List</h2>
 
             {shopItems.length === 0 && !query ? (
                 <div className="flex flex-col items-center justify-center py-20 opacity-50 text-center">
