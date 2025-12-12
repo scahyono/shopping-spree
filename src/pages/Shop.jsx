@@ -84,7 +84,12 @@ export default function ShopPage() {
                         ) : (
                             sortedSearchMatches.map(item => (
                                 <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
-                                    <span className="font-medium text-gray-800">{item.name}</span>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-gray-800">{item.name}</span>
+                                        {!item.isOnShoppingList && (
+                                            <span className="text-xs text-gray-500">Not in current list</span>
+                                        )}
+                                    </div>
                                     <button
                                         onClick={() => !item.isOnShoppingList && actions.toggleShop(item.id)}
                                         disabled={item.isOnShoppingList}
