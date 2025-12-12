@@ -1,43 +1,30 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { PackagePlus } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import SmartOmnibox from '../components/SmartOmnibox';
 import { useApp } from '../context/AppContext';
+import useOmniboxSearch from '../hooks/useOmniboxSearch';
 import { scrollAndHighlightItem } from '../utils/highlightItem';
 import { sortByActivationThenName } from '../utils/omnibox';
 
 export default function StockPage() {
     const { items, actions } = useApp();
-    const [query, setQuery] = useState('');
+    const isActive = useCallback((item) => item.isInStock, []);
 
-    const normalizedQuery = query.trim().toLowerCase();
-    const hasQuery = normalizedQuery.length > 0;
-
-    const isActive = (item) => item.isInStock;
+    const {
+        query,
+        setQuery,
+        hasQuery,
+        sortedMatches,
+        visibleAddableMatches,
+        hiddenMatches,
+        activeMatches,
+    } = useOmniboxSearch({ items, isActive });
 
     const stockItems = useMemo(
         () => items.filter(isActive).sort(sortByActivationThenName),
-        [items]
+        [items, isActive]
     );
-
-    const searchMatches = useMemo(
-        () => hasQuery ? items.filter(i => i.name.toLowerCase().includes(normalizedQuery)) : [],
-        [hasQuery, items, normalizedQuery]
-    );
-
-    const sortedSearchMatches = useMemo(
-        () => [...searchMatches].sort((a, b) => {
-            const activeDelta = Number(isActive(a)) - Number(isActive(b));
-            if (activeDelta !== 0) return activeDelta;
-            return sortByActivationThenName(a, b);
-        }),
-        [searchMatches]
-    );
-
-    const addableMatches = sortedSearchMatches.filter(item => !isActive(item));
-    const hiddenMatches = addableMatches.filter(item => !item.isInStock && !item.isOnShoppingList);
-    const visibleAddableMatches = addableMatches.filter(item => item.isInStock || item.isOnShoppingList);
-    const onStockMatches = sortedSearchMatches.filter(isActive);
 
     const handleActivate = (item) => {
         actions.toggleStock(item.id, true);
@@ -73,7 +60,7 @@ export default function StockPage() {
 
             {hasQuery ? (
                 <div className="space-y-2">
-                    {sortedSearchMatches.length === 0 ? (
+                    {sortedMatches.length === 0 ? (
                         <p className="text-sm text-gray-500">No matches found. Press Enter to add &quot;{query.trim()}&quot;.</p>
                     ) : (
                         <div className="space-y-3">
@@ -117,10 +104,10 @@ export default function StockPage() {
                                 </div>
                             )}
 
-                            {onStockMatches.length > 0 && (
+                            {activeMatches.length > 0 && (
                                 <div className="space-y-2">
                                     <p className="text-xs uppercase tracking-wide text-gray-500">Already in inventory</p>
-                                    {onStockMatches.map(item => (
+                                    {activeMatches.map(item => (
                                         <div
                                             key={item.id}
                                             className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between"
