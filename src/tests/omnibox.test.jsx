@@ -123,6 +123,31 @@ describe('SmartOmnibox', () => {
         });
     });
 
+    test('typing_should_discard_previous_autocomplete_suffix', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Cream', isOnShoppingList: false, isInStock: false },
+                { id: '2', name: 'Cheese', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        fireEvent.change(input, { target: { value: 'C' }, nativeEvent: { inputType: 'insertText' } });
+        await waitFor(() => {
+            expect(input.value).toBe('Cream');
+            expect(input.selectionStart).toBe(1);
+            expect(input.selectionEnd).toBe(5);
+        });
+
+        fireEvent.change(input, { target: { value: 'Ch' }, nativeEvent: { inputType: 'insertText' } });
+
+        await waitFor(() => {
+            expect(input.value.startsWith('Ch')).toBe(true);
+            expect(input.value).not.toBe('Cream');
+            expect(input.selectionStart).toBe(2);
+            expect(input.selectionEnd).toBe(2);
+        });
+    });
+
     test('backspace_should_remove_selection_only', async () => {
         const { input } = renderHarness();
 
