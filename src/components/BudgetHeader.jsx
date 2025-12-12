@@ -18,16 +18,12 @@ export default function BudgetHeader() {
         <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
             <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
                 <div className="flex flex-col gap-1">
-                    {labsEnabled ? (
-                        <>
-                            <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Wants</div>
-                            <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
-                                Week {computed.currentWeek} / {computed.totalWeeks}
-                            </div>
-                        </>
-                    ) : (
-                        <div className="text-xs font-medium opacity-90">Labs available to approved testers</div>
+                    {labsEnabled && (
+                        <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Wants</div>
                     )}
+                    <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
+                        Week {computed.currentWeek} / {computed.totalWeeks}
+                    </div>
                 </div>
                 {/* The Single Truth */}
                 {labsEnabled ? (
@@ -45,7 +41,9 @@ export default function BudgetHeader() {
                         </div>
                     </button>
                 ) : (
-                    <div className="justify-self-center text-center text-sm font-semibold opacity-90">Budget labs hidden</div>
+                    <div className="justify-self-center text-center text-sm font-semibold opacity-50" aria-hidden="true">
+                        —
+                    </div>
                 )}
                 <div className="flex justify-end">
                     <SyncControls compact />
