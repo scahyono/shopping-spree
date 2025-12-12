@@ -20,6 +20,7 @@ export default function StockPage() {
     // 2. Search Results (from ALL items)
 
     const displayItems = query ? items.filter(i => i.name.toLowerCase().includes(query.toLowerCase())) : stockItems;
+    const sortedDisplayItems = [...displayItems].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     const handleAdd = (e) => {
         e.preventDefault();
@@ -64,7 +65,7 @@ export default function StockPage() {
             )}
 
             <div className="space-y-3">
-                {displayItems.map(item => (
+                {sortedDisplayItems.map(item => (
                     <ItemCard key={item.id} item={item} mode="stock" />
                 ))}
             </div>
