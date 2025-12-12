@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Box } from 'lucide-react';
 import BudgetHeader from './BudgetHeader';
@@ -7,8 +7,24 @@ export default function Layout({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
     const touchStartRef = useRef(null);
+    const animationTimerRef = useRef(null);
+    const [swipeDirection, setSwipeDirection] = useState(null);
 
     const isActive = (path) => location.pathname === path;
+
+    const triggerNavigation = (path, direction) => {
+        setSwipeDirection(direction);
+
+        if (animationTimerRef.current) {
+            clearTimeout(animationTimerRef.current);
+        }
+
+        animationTimerRef.current = setTimeout(() => {
+            setSwipeDirection(null);
+        }, 200);
+
+        navigate(path);
+    };
 
     const startSwipe = (point, source) => {
         touchStartRef.current = { ...point, source };
@@ -22,9 +38,9 @@ export default function Layout({ children }) {
 
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
             if (dx < 0 && !isActive('/stock')) {
-                navigate('/stock');
+                triggerNavigation('/stock', 'left');
             } else if (dx > 0 && !isActive('/')) {
-                navigate('/');
+                triggerNavigation('/', 'right');
             }
         }
 
@@ -51,6 +67,19 @@ export default function Layout({ children }) {
         finishSwipe({ x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY }, 'touch');
     };
 
+    useEffect(() => () => {
+        if (animationTimerRef.current) {
+            clearTimeout(animationTimerRef.current);
+        }
+    }, []);
+
+    const swipeAnimationClass =
+        swipeDirection === 'left'
+            ? 'swipe-slide-left'
+            : swipeDirection === 'right'
+              ? 'swipe-slide-right'
+              : '';
+
     return (
         <div className="flex flex-col h-screen bg-brand-50 text-gray-800 font-sans overflow-hidden">
             {/* Persistent Header */}
@@ -58,7 +87,7 @@ export default function Layout({ children }) {
 
             {/* Main Content Area - Scrollable */}
             <main
-                className="flex-1 overflow-y-auto pb-24 relative p-4 space-y-4"
+                className={`flex-1 overflow-y-auto pb-24 relative p-4 space-y-4 ${swipeAnimationClass}`}
                 onPointerDown={handlePointerDown}
                 onPointerUp={handlePointerUp}
                 onTouchStart={handleTouchStart}
