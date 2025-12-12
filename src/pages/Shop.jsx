@@ -23,6 +23,8 @@ export default function ShopPage() {
     });
 
     const addableMatches = sortedSearchMatches.filter(item => !item.isOnShoppingList);
+    const hiddenMatches = addableMatches.filter(item => !item.isInStock && !item.isOnShoppingList);
+    const visibleAddableMatches = addableMatches.filter(item => item.isInStock || item.isOnShoppingList);
     const onListMatches = sortedSearchMatches.filter(item => item.isOnShoppingList);
     const sortedShopItems = [...shopItems].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
@@ -90,10 +92,10 @@ export default function ShopPage() {
                             <p className="text-sm text-gray-500">No matches found. Press Enter to add &quot;{query.trim()}&quot;.</p>
                         ) : (
                             <div className="space-y-3">
-                                {addableMatches.length > 0 && (
+                                {visibleAddableMatches.length > 0 && (
                                     <div className="space-y-2">
                                         <p className="text-xs uppercase tracking-wide text-gray-500">Available to add</p>
-                                        {addableMatches.map(item => (
+                                        {visibleAddableMatches.map(item => (
                                             <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
                                                 <div className="flex flex-col gap-0.5">
                                                     <span className="font-medium text-gray-800">{item.name}</span>
@@ -101,6 +103,30 @@ export default function ShopPage() {
                                                         <span>Not in current list</span>
                                                         {!item.isInStock && <span aria-hidden>&bull;</span>}
                                                         {!item.isInStock && <span>Not in stock</span>}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => actions.toggleShop(item.id)}
+                                                    className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors bg-brand-500 text-white hover:bg-brand-600"
+                                                >
+                                                    Add to list
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {hiddenMatches.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-wide text-gray-500">Hidden items</p>
+                                        {hiddenMatches.map(item => (
+                                            <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium text-gray-800">{item.name}</span>
+                                                    <div className="flex gap-2 text-xs text-gray-500">
+                                                        <span>Previously hidden</span>
+                                                        <span aria-hidden>&bull;</span>
+                                                        <span>Not in stock</span>
                                                     </div>
                                                 </div>
                                                 <button
