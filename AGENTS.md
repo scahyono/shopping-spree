@@ -4,3 +4,4 @@
 - **DO NOT TOUCH THE MAIN BRANCH**. Work on feature branches and do not merge to main.
 - Always run unit tests.
 - Always increase the build number during deploy.
+- Always deploy at the end of the task.
