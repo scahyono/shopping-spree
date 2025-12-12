@@ -72,10 +72,7 @@ export function useSmartOmnibox({
         const rawValue = e.target.value;
         const selectionStart = e.target.selectionStart ?? rawValue.length;
         const selectionEnd = e.target.selectionEnd ?? selectionStart;
-        const hasSelection = selectionEnd > selectionStart;
-        const manualInput = hasSelection
-            ? rawValue.slice(0, selectionStart)
-            : rawValue;
+        const manualInput = rawValue.slice(0, selectionStart);
         const inputType = e.inputType || e.nativeEvent?.inputType;
         const isDelete = inputType === 'deleteContentBackward' || lastBackspaceRef.current;
         const isInsert = inputType?.startsWith('insert') ?? !isDelete;
