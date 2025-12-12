@@ -123,6 +123,7 @@ export default function ItemCard({ item, mode }) {
     const handlePointerDown = (e) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (dragStartRef.current?.source === 'touch') return;
+        e.stopPropagation();
         startDrag({ x: e.clientX, y: e.clientY }, 'pointer');
     };
 
@@ -130,12 +131,14 @@ export default function ItemCard({ item, mode }) {
         updateDrag({ x: e.clientX, y: e.clientY }, 'pointer');
     };
 
-    const handlePointerEnd = () => {
+    const handlePointerEnd = (e) => {
+        e.stopPropagation();
         endDrag('pointer');
     };
 
     const handleTouchStart = (e) => {
         if (!e.touches?.length) return;
+        e.stopPropagation();
         startDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
     };
 
@@ -146,6 +149,7 @@ export default function ItemCard({ item, mode }) {
 
     const handleTouchEnd = (e) => {
         if (!e.changedTouches?.length) return;
+        e.stopPropagation();
         lastPointerRef.current = {
             x: e.changedTouches[0].clientX,
             y: e.changedTouches[0].clientY
