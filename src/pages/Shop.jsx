@@ -1,67 +1,142 @@
-import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useCallback, useMemo } from 'react';
+import { Ghost, ShoppingCart } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
-import { Ghost, Search, ShoppingCart } from 'lucide-react';
+import SmartOmnibox from '../components/SmartOmnibox';
+import { useApp } from '../context/AppContext';
+import useOmniboxSearch from '../hooks/useOmniboxSearch';
+import { scrollAndHighlightItem } from '../utils/highlightItem';
+import { sortByActivationThenName } from '../utils/omnibox';
 
 export default function ShopPage() {
     const { items, actions } = useApp();
-    const [query, setQuery] = useState('');
+    const isActive = useCallback((item) => item.isOnShoppingList, []);
 
-    const shopItems = items.filter(i => i.isOnShoppingList);
+    const {
+        query,
+        setQuery,
+        hasQuery,
+        sortedMatches,
+        visibleAddableMatches,
+        hiddenMatches,
+        activeMatches,
+    } = useOmniboxSearch({ items, isActive });
 
-    // Filter visible items
-    const displayItems = query
-        ? shopItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
-        : shopItems;
-    const sortedDisplayItems = [...displayItems].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const shopItems = useMemo(
+        () => items.filter(isActive).sort(sortByActivationThenName),
+        [items, isActive]
+    );
 
-    const handleAdd = (e) => {
-        e.preventDefault();
-        if (!query.trim()) return;
+    const handleActivate = (item) => {
+        actions.toggleShop(item.id, true);
+    };
 
-        const item = actions.addItem(query);
-        // Ensure it's on the shopping list
-        if (item && !item.isOnShoppingList) {
-            actions.toggleShop(item.id);
-        }
-        setQuery('');
+    const handleCreate = (name) => actions.addItem(name);
+
+    const handleExistingActive = (item) => {
+        scrollAndHighlightItem(item.id);
     };
 
     return (
         <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Shopping List</h2>
 
-            {/* Search / Add Bar */}
-            <form onSubmit={handleAdd} className="sticky top-0 bg-brand-50 pt-2 pb-4 z-10">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search or Add item..."
-                        className="w-full bg-white rounded-xl py-3 pl-10 pr-12 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                    />
-                    <button
-                        type="submit"
-                        disabled={!query}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-500 text-white p-1.5 rounded-lg disabled:opacity-50"
-                    >
-                        <ShoppingCart size={20} />
-                    </button>
-                </div>
-            </form>
+            <SmartOmnibox
+                items={items}
+                isActive={isActive}
+                activateItem={handleActivate}
+                createItem={handleCreate}
+                onExistingActive={handleExistingActive}
+                onQueryChange={setQuery}
+                placeholder="Search or Add item..."
+                actionIcon={ShoppingCart}
+                actionLabel="Add to shopping list"
+            />
 
-            {shopItems.length === 0 && !query ? (
+            {shopItems.length === 0 && !hasQuery ? (
                 <div className="flex flex-col items-center justify-center py-20 opacity-50 text-center">
                     <Ghost size={48} className="mb-4 text-brand-300" />
                     <p>Your list is empty!</p>
                     <p className="text-sm">Check Stock to add items.</p>
                 </div>
             ) : (
-                sortedDisplayItems.map(item => (
-                    <ItemCard key={item.id} item={item} mode="shop" />
-                ))
+                hasQuery ? (
+                    <div className="space-y-2">
+                        {sortedMatches.length === 0 ? (
+                            <p className="text-sm text-gray-500">No matches found. Press Enter to add &quot;{query.trim()}&quot;.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {visibleAddableMatches.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-wide text-gray-500">Available to add</p>
+                                        {visibleAddableMatches.map(item => (
+                                            <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium text-gray-800">{item.name}</span>
+                                                    <div className="flex gap-2 text-xs text-gray-500">
+                                                        <span>Not in current list</span>
+                                                        {!item.isInStock && <span aria-hidden>&bull;</span>}
+                                                        {!item.isInStock && <span>Not in stock</span>}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => actions.toggleShop(item.id, true)}
+                                                    className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors bg-brand-500 text-white hover:bg-brand-600"
+                                                >
+                                                    Add to list
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {hiddenMatches.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-wide text-gray-500">Hidden items</p>
+                                        {hiddenMatches.map(item => (
+                                            <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium text-gray-800">{item.name}</span>
+                                                    <div className="flex gap-2 text-xs text-gray-500">
+                                                        <span>Previously hidden</span>
+                                                        <span aria-hidden>&bull;</span>
+                                                        <span>Not in stock</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => actions.toggleShop(item.id, true)}
+                                                    className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors bg-brand-500 text-white hover:bg-brand-600"
+                                                >
+                                                    Add to list
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {activeMatches.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-wide text-gray-500">Already on your list</p>
+                                        {activeMatches.map(item => (
+                                            <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
+                                                <span className="font-medium text-gray-800">{item.name}</span>
+                                                <button
+                                                    disabled
+                                                    className="px-3 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-500 cursor-not-allowed"
+                                                >
+                                                    On list
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    shopItems.map(item => (
+                        <ItemCard key={item.id} item={item} mode="shop" />
+                    ))
+                )
             )}
         </div>
     );

@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
+import buildInfo from '../buildInfo.json';
 
 export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
+    const buildStamp = useMemo(() => {
+        if (!buildInfo?.builtAt) return null;
+        try {
+            return new Date(buildInfo.builtAt).toLocaleString();
+        } catch {
+            return buildInfo.builtAt;
+        }
+    }, []);
 
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
 
@@ -54,6 +63,16 @@ export default function BudgetHeader() {
             {labsEnabled && (
                 <div className={`bg-brand-600 overflow-hidden transition-all duration-300 ease-in-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="p-4 space-y-4">
+                        <div className="flex items-start justify-between gap-4 text-xs uppercase tracking-wide text-brand-100">
+                            <div className="flex flex-col gap-1">
+                                <span className="font-semibold">Labs</span>
+                                <span className="text-[11px] opacity-80">Code-tracked build metadata</span>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm font-bold">Build #{buildInfo.buildNumber ?? '—'}</div>
+                                {buildStamp && <div className="text-[11px] opacity-70">Built {buildStamp}</div>}
+                            </div>
+                        </div>
                         {['income', 'needs', 'future', 'wants'].map(cat => (
                             <div key={cat} className="flex items-center justify-between">
                                 <span className="capitalize font-medium opacity-90">{cat}</span>

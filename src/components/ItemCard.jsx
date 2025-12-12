@@ -189,6 +189,7 @@ export default function ItemCard({ item, mode }) {
             </div>
 
             <div
+                data-item-id={item.id}
                 className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
                 style={{ transform: `translateX(${dragOffset}px)`, touchAction: 'pan-y' }}
             >
