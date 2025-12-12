@@ -7,20 +7,32 @@ export default function ShopPage() {
     const { items, actions } = useApp();
     const [query, setQuery] = useState('');
 
+    const normalizedQuery = query.trim().toLowerCase();
+    const hasQuery = normalizedQuery.length > 0;
+
     const shopItems = items.filter(i => i.isOnShoppingList);
 
-    // Filter visible items
-    const displayItems = query
-        ? shopItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
-        : shopItems;
-    const sortedDisplayItems = [...displayItems].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const searchMatches = hasQuery
+        ? items.filter(i => i.name.toLowerCase().includes(normalizedQuery))
+        : [];
+
+    const sortedSearchMatches = [...searchMatches].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const sortedShopItems = [...shopItems].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     const handleAdd = (e) => {
         e.preventDefault();
-        if (!query.trim()) return;
+        if (!normalizedQuery) return;
+
+        if (sortedSearchMatches.length > 0) {
+            const bestMatch = sortedSearchMatches[0];
+            if (!bestMatch.isOnShoppingList) {
+                actions.toggleShop(bestMatch.id);
+            }
+            setQuery('');
+            return;
+        }
 
         const item = actions.addItem(query);
-        // Ensure it's on the shopping list
         if (item && !item.isOnShoppingList) {
             actions.toggleShop(item.id);
         }
@@ -41,7 +53,13 @@ export default function ShopPage() {
                         className="w-full bg-white rounded-xl py-3 pl-10 pr-12 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        list="shop-search-options"
                     />
+                    <datalist id="shop-search-options">
+                        {sortedSearchMatches.map(item => (
+                            <option key={item.id} value={item.name} />
+                        ))}
+                    </datalist>
                     <button
                         type="submit"
                         disabled={!query}
@@ -52,16 +70,40 @@ export default function ShopPage() {
                 </div>
             </form>
 
-            {shopItems.length === 0 && !query ? (
+            {shopItems.length === 0 && !hasQuery ? (
                 <div className="flex flex-col items-center justify-center py-20 opacity-50 text-center">
                     <Ghost size={48} className="mb-4 text-brand-300" />
                     <p>Your list is empty!</p>
                     <p className="text-sm">Check Stock to add items.</p>
                 </div>
             ) : (
-                sortedDisplayItems.map(item => (
-                    <ItemCard key={item.id} item={item} mode="shop" />
-                ))
+                hasQuery ? (
+                    <div className="space-y-2">
+                        {sortedSearchMatches.length === 0 ? (
+                            <p className="text-sm text-gray-500">No matches found. Press Enter to add &quot;{query.trim()}&quot;.</p>
+                        ) : (
+                            sortedSearchMatches.map(item => (
+                                <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
+                                    <span className="font-medium text-gray-800">{item.name}</span>
+                                    <button
+                                        onClick={() => !item.isOnShoppingList && actions.toggleShop(item.id)}
+                                        disabled={item.isOnShoppingList}
+                                        className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${item.isOnShoppingList
+                                            ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                                            : 'bg-brand-500 text-white hover:bg-brand-600'}
+                                        `}
+                                    >
+                                        {item.isOnShoppingList ? 'On list' : 'Add to list'}
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                ) : (
+                    sortedShopItems.map(item => (
+                        <ItemCard key={item.id} item={item} mode="shop" />
+                    ))
+                )
             )}
         </div>
     );
