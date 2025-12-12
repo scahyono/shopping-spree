@@ -41,7 +41,12 @@ export default function Layout({ children }) {
                 className="flex-1 overflow-y-auto pb-24 relative p-4 space-y-4"
                 onPointerDown={handlePointerDown}
                 onPointerUp={handlePointerUp}
+                aria-label="Swipe left or right on empty space to switch between tabs"
             >
+                <p className="sr-only">
+                    Swipe left or right on empty space to switch between Shop and Stock. Swipe item cards to reveal hide or
+                    buy actions.
+                </p>
                 {children}
             </main>
 

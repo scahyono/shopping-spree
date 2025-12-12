@@ -122,8 +122,13 @@ export default function ItemCard({ item, mode }) {
     };
 
     const activeAction = getActiveAction(dragOffset);
-    const rightActionLabel = mode === 'shop' ? 'Mark Bought' : item.isOnShoppingList ? 'Remove from Buy' : 'Add to Buy';
-    const leftActionLabel = 'Hide';
+    const rightActionLabel =
+        mode === 'shop'
+            ? 'Swipe right to mark bought'
+            : item.isOnShoppingList
+                ? 'Swipe right to remove from buy'
+                : 'Swipe right to add to buy';
+    const leftActionLabel = 'Swipe left to hide';
     const rightActionColor = mode === 'shop' ? 'text-emerald-700' : 'text-brand-700';
     const rightBg = mode === 'shop' ? 'bg-emerald-50' : 'bg-brand-50';
     const leftBg = 'bg-red-50';
@@ -139,10 +144,10 @@ export default function ItemCard({ item, mode }) {
             <div
                 className={`absolute inset-0 rounded-xl px-4 flex items-center justify-between select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : activeAction ? rightBg : 'bg-gray-50'}`}
             >
-                <span className={`text-sm font-semibold text-red-500 transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
+                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap text-red-500 transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
                     {leftActionLabel}
                 </span>
-                <span className={`text-sm font-semibold ${rightActionColor} transition-opacity ${dragOffset > 10 ? 'opacity-100' : 'opacity-40'}`}>
+                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap ${rightActionColor} transition-opacity ${dragOffset > 10 ? 'opacity-100' : 'opacity-40'}`}>
                     {rightActionLabel}
                 </span>
             </div>
