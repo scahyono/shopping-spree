@@ -76,8 +76,8 @@ Enable real-time data sync across family members using Firebase Realtime Databas
 3. Enable **Google Authentication** in Authentication settings
 4. Create a **Realtime Database** (start in locked mode)
 
-#### 2. Seed Whitelist Entries
-In the Realtime Database, add a `whitelist` node. Inside it, create child keys using **Firebase Auth UIDs** for every allowed account (found in the Firebase Authentication user list). Set the value to `true` for each UID you want to allow.
+#### 2. Seed Whitelist Entries (and let others auto-queue)
+In the Realtime Database, add a `whitelist` node. Inside it, create child keys using **Firebase Auth UIDs** for every allowed account (found in the Firebase Authentication user list). Set the value to `true` for each UID you want to allow. Any signed-in user who is **not** whitelisted is automatically added to `waitingList/{uid}` with their email, display name, and a pending status. Admins can copy a UID from `waitingList` into `whitelist` via the Firebase console when they're ready to approve access.
 
 Example structure:
 ```json
@@ -96,6 +96,12 @@ Example structure:
       "$uid": {
         ".read": "auth != null",
         ".write": "false"
+      }
+    },
+    "waitingList": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
       }
     },
     "family": {
