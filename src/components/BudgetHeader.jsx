@@ -59,6 +59,14 @@ export default function BudgetHeader() {
                 </div>
             </div>
 
+            <div className="px-4 pb-2 flex items-center justify-between text-[11px] tracking-wide uppercase text-white/80">
+                <span className="font-semibold">Labs Build</span>
+                <span className="font-bold text-white text-xs">
+                    #{buildInfo.buildNumber ?? '—'}
+                    {buildStamp && <span className="text-white/70 font-medium"> • {buildStamp}</span>}
+                </span>
+            </div>
+
             {/* Detailed View */}
             {labsEnabled && (
                 <div className={`bg-brand-600 overflow-hidden transition-all duration-300 ease-in-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
