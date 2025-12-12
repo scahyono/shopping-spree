@@ -10,8 +10,8 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'node',
-    // setupFiles: './src/tests/setup.js',
+    environment: 'jsdom',
+    setupFiles: './src/tests/setup.js',
     include: ['src/tests/**/*.{test,spec}.{js,jsx}']
   }
 })

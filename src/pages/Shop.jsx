@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useMemo, useState } from 'react';
+import { Ghost, ShoppingCart } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
-import { Ghost, Search, ShoppingCart } from 'lucide-react';
+import SmartOmnibox from '../components/SmartOmnibox';
+import { useApp } from '../context/AppContext';
+import { scrollAndHighlightItem } from '../utils/highlightItem';
+import { sortByActivationThenName } from '../utils/omnibox';
 
 export default function ShopPage() {
     const { items, actions } = useApp();
@@ -10,74 +13,57 @@ export default function ShopPage() {
     const normalizedQuery = query.trim().toLowerCase();
     const hasQuery = normalizedQuery.length > 0;
 
-    const shopItems = items.filter(i => i.isOnShoppingList);
+    const isActive = (item) => item.isOnShoppingList;
 
-    const searchMatches = hasQuery
-        ? items.filter(i => i.name.toLowerCase().includes(normalizedQuery))
-        : [];
+    const shopItems = useMemo(
+        () => items.filter(isActive).sort(sortByActivationThenName),
+        [items]
+    );
 
-    const sortedSearchMatches = [...searchMatches].sort((a, b) => {
-        const onListDelta = Number(a.isOnShoppingList) - Number(b.isOnShoppingList);
-        if (onListDelta !== 0) return onListDelta;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    });
+    const searchMatches = useMemo(
+        () => hasQuery ? items.filter(i => i.name.toLowerCase().includes(normalizedQuery)) : [],
+        [hasQuery, items, normalizedQuery]
+    );
 
-    const addableMatches = sortedSearchMatches.filter(item => !item.isOnShoppingList);
+    const sortedSearchMatches = useMemo(
+        () => [...searchMatches].sort((a, b) => {
+            const activeDelta = Number(isActive(a)) - Number(isActive(b));
+            if (activeDelta !== 0) return activeDelta;
+            return sortByActivationThenName(a, b);
+        }),
+        [searchMatches]
+    );
+
+    const addableMatches = sortedSearchMatches.filter(item => !isActive(item));
     const hiddenMatches = addableMatches.filter(item => !item.isInStock && !item.isOnShoppingList);
     const visibleAddableMatches = addableMatches.filter(item => item.isInStock || item.isOnShoppingList);
-    const onListMatches = sortedSearchMatches.filter(item => item.isOnShoppingList);
-    const sortedShopItems = [...shopItems].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const onListMatches = sortedSearchMatches.filter(isActive);
 
-    const handleAdd = (e) => {
-        e.preventDefault();
-        if (!normalizedQuery) return;
+    const handleActivate = (item) => {
+        actions.toggleShop(item.id, true);
+    };
 
-        if (sortedSearchMatches.length > 0) {
-            const bestMatch = addableMatches[0] ?? sortedSearchMatches[0];
-            if (!bestMatch.isOnShoppingList) {
-                actions.toggleShop(bestMatch.id);
-            }
-            setQuery('');
-            return;
-        }
+    const handleCreate = (name) => actions.addItem(name);
 
-        const item = actions.addItem(query);
-        if (item && !item.isOnShoppingList) {
-            actions.toggleShop(item.id);
-        }
-        setQuery('');
+    const handleExistingActive = (item) => {
+        scrollAndHighlightItem(item.id);
     };
 
     return (
         <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Shopping List</h2>
 
-            {/* Search / Add Bar */}
-            <form onSubmit={handleAdd} className="sticky top-0 bg-brand-50 pt-2 pb-4 z-10">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search or Add item..."
-                        className="w-full bg-white rounded-xl py-3 pl-10 pr-12 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        list="shop-search-options"
-                    />
-                    <datalist id="shop-search-options">
-                        {sortedSearchMatches.map(item => (
-                            <option key={item.id} value={item.name} />
-                        ))}
-                    </datalist>
-                    <button
-                        type="submit"
-                        disabled={!query}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-500 text-white p-1.5 rounded-lg disabled:opacity-50"
-                    >
-                        <ShoppingCart size={20} />
-                    </button>
-                </div>
-            </form>
+            <SmartOmnibox
+                items={items}
+                isActive={isActive}
+                activateItem={handleActivate}
+                createItem={handleCreate}
+                onExistingActive={handleExistingActive}
+                onQueryChange={setQuery}
+                placeholder="Search or Add item..."
+                actionIcon={ShoppingCart}
+                actionLabel="Add to shopping list"
+            />
 
             {shopItems.length === 0 && !hasQuery ? (
                 <div className="flex flex-col items-center justify-center py-20 opacity-50 text-center">
@@ -106,7 +92,7 @@ export default function ShopPage() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => actions.toggleShop(item.id)}
+                                                    onClick={() => actions.toggleShop(item.id, true)}
                                                     className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors bg-brand-500 text-white hover:bg-brand-600"
                                                 >
                                                     Add to list
@@ -130,7 +116,7 @@ export default function ShopPage() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => actions.toggleShop(item.id)}
+                                                    onClick={() => actions.toggleShop(item.id, true)}
                                                     className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors bg-brand-500 text-white hover:bg-brand-600"
                                                 >
                                                     Add to list
@@ -160,7 +146,7 @@ export default function ShopPage() {
                         )}
                     </div>
                 ) : (
-                    sortedShopItems.map(item => (
+                    shopItems.map(item => (
                         <ItemCard key={item.id} item={item} mode="shop" />
                     ))
                 )

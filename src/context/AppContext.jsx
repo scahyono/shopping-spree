@@ -7,10 +7,10 @@ import { onAuthChange, updateBudgetField, updateItem as firebaseUpdateItem } fro
 const AppContext = createContext();
 
 const DEMO_ITEMS = [
-    { id: 'demo-1', name: 'Milk', isInStock: false, isOnShoppingList: true },
-    { id: 'demo-2', name: 'Eggs', isInStock: true, isOnShoppingList: false },
-    { id: 'demo-3', name: 'Bread', isInStock: false, isOnShoppingList: true },
-    { id: 'demo-4', name: 'Coffee', isInStock: true, isOnShoppingList: true }, // Both
+    { id: 'demo-1', name: 'Milk', isInStock: false, isOnShoppingList: true, activatedAt: Date.now() },
+    { id: 'demo-2', name: 'Eggs', isInStock: true, isOnShoppingList: false, activatedAt: Date.now() },
+    { id: 'demo-3', name: 'Bread', isInStock: false, isOnShoppingList: true, activatedAt: Date.now() },
+    { id: 'demo-4', name: 'Coffee', isInStock: true, isOnShoppingList: true, activatedAt: Date.now() }, // Both
     { id: 'demo-5', name: 'Ice Cream', isInStock: false, isOnShoppingList: false }, // Hidden
 ];
 
@@ -185,7 +185,8 @@ export function AppProvider({ children }) {
             id: crypto.randomUUID(),
             name: normalizedName,
             isInStock: false,
-            isOnShoppingList: false
+            isOnShoppingList: false,
+            activatedAt: Date.now()
         };
 
         // Sync to Firebase granularly
@@ -197,10 +198,15 @@ export function AppProvider({ children }) {
         return newItem;
     };
 
-    const toggleStock = (id) => {
+    const toggleStock = (id, nextState) => {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            const updatedItem = { ...item, isInStock: !item.isInStock };
+            const resolvedState = typeof nextState === 'boolean' ? nextState : !item.isInStock;
+            const updatedItem = {
+                ...item,
+                isInStock: resolvedState,
+                activatedAt: resolvedState ? Date.now() : item.activatedAt
+            };
 
             // Sync to Firebase granularly
             if (currentUser) {
@@ -211,10 +217,15 @@ export function AppProvider({ children }) {
         }));
     };
 
-    const toggleShop = (id) => {
+    const toggleShop = (id, nextState) => {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            const updatedItem = { ...item, isOnShoppingList: !item.isOnShoppingList };
+            const resolvedState = typeof nextState === 'boolean' ? nextState : !item.isOnShoppingList;
+            const updatedItem = {
+                ...item,
+                isOnShoppingList: resolvedState,
+                activatedAt: resolvedState ? Date.now() : item.activatedAt
+            };
 
             // Sync to Firebase granularly
             if (currentUser) {
