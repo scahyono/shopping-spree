@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Check, EyeOff, Plus, ShoppingCart, Pencil } from 'lucide-react';
+import { Check, EyeOff, ShoppingCart, Pencil } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function ItemCard({ item, mode }) {
@@ -92,11 +92,6 @@ export default function ItemCard({ item, mode }) {
                         </button>
                     </>
                 )}
-                {mode === 'stock' && item.isOnShoppingList && (
-                    <span className="text-xs text-brand-500 font-bold bg-brand-50 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
-                        <ShoppingCart size={10} /> To Buy
-                    </span>
-                )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -113,14 +108,13 @@ export default function ItemCard({ item, mode }) {
                 {mode === 'stock' && (
                     <button
                         onClick={handleAddToShop}
-                        disabled={item.isOnShoppingList}
                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors active:scale-90 ${item.isOnShoppingList
-                            ? 'bg-gray-100 text-gray-300'
+                            ? 'bg-brand-500 text-white hover:bg-brand-600'
                             : 'bg-gray-100 text-gray-600 hover:bg-brand-500 hover:text-white'
                             }`}
-                        title="Add to Shop"
+                        title={item.isOnShoppingList ? 'Remove from Shopping List' : 'Add to Shopping List'}
                     >
-                        <Plus size={20} />
+                        <ShoppingCart size={20} />
                     </button>
                 )}
 
