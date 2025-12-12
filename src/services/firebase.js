@@ -104,9 +104,59 @@ export async function loadFamilyData() {
     const { database } = initializeFirebase();
     const familyRef = ref(database, 'family/shared');
     const snapshot = await get(familyRef);
-    return snapshot.exists() ? snapshot.val() : null;
+
+    if (!snapshot.exists()) return null;
+
+    const data = snapshot.val();
+    // Convert items object to array if it exists
+    if (data.items && typeof data.items === 'object' && !Array.isArray(data.items)) {
+        data.items = Object.values(data.items);
+    }
+
+    return data;
 }
 
+// Granular update for a single budget field
+export async function updateBudgetField(category, field, value) {
+    const { database, auth } = initializeFirebase();
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const budgetFieldRef = ref(database, `family/shared/budget/${category}/${field}`);
+    await update(ref(database, 'family/shared'), {
+        [`budget/${category}/${field}`]: value,
+        lastModified: new Date().toISOString(),
+        lastModifiedBy: user.email
+    });
+}
+
+// Granular update for a single item
+export async function updateItem(item) {
+    const { database, auth } = initializeFirebase();
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    await update(ref(database, 'family/shared'), {
+        [`items/${item.id}`]: item,
+        lastModified: new Date().toISOString(),
+        lastModifiedBy: user.email
+    });
+}
+
+// Delete a single item
+export async function deleteItem(itemId) {
+    const { database, auth } = initializeFirebase();
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    await update(ref(database, 'family/shared'), {
+        [`items/${itemId}`]: null,
+        lastModified: new Date().toISOString(),
+        lastModifiedBy: user.email
+    });
+}
+
+// Bulk update for initial sync or migration (kept for compatibility)
 export async function saveFamilyBudget(budget) {
     const { database, auth } = initializeFirebase();
     const user = auth.currentUser;
@@ -125,9 +175,15 @@ export async function saveFamilyItems(items) {
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
+    // Convert array to object keyed by id
+    const itemsObject = items.reduce((acc, item) => {
+        acc[item.id] = item;
+        return acc;
+    }, {});
+
     const familyRef = ref(database, 'family/shared');
     await update(familyRef, {
-        items,
+        items: itemsObject,
         lastModified: new Date().toISOString(),
         lastModifiedBy: user.email
     });
@@ -155,7 +211,10 @@ export function listenToFamilyItems(callback) {
 
     const handler = (snapshot) => {
         if (snapshot.exists()) {
-            callback(snapshot.val());
+            const itemsObject = snapshot.val();
+            // Convert object to array
+            const itemsArray = Object.values(itemsObject || {});
+            callback(itemsArray);
         }
     };
 
