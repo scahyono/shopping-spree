@@ -92,22 +92,21 @@ export default function ItemCard({ item, mode }) {
         dragStartRef.current = null;
     };
 
-    const handlePointerDown = (e) => {
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        dragStartRef.current = { x: e.clientX, y: e.clientY };
-        lastPointerRef.current = { x: e.clientX, y: e.clientY };
+    const startDrag = (point, source) => {
+        dragStartRef.current = { ...point, source };
+        lastPointerRef.current = point;
         setIsDragging(true);
     };
 
-    const handlePointerMove = (e) => {
-        if (!isDragging || !dragStartRef.current) return;
-        lastPointerRef.current = { x: e.clientX, y: e.clientY };
-        const deltaX = e.clientX - dragStartRef.current.x;
+    const updateDrag = (point, source) => {
+        if (!isDragging || !dragStartRef.current || dragStartRef.current.source !== source) return;
+        lastPointerRef.current = point;
+        const deltaX = point.x - dragStartRef.current.x;
         setDragOffset(deltaX);
     };
 
-    const handlePointerEnd = () => {
-        if (!isDragging) return;
+    const endDrag = (source) => {
+        if (!isDragging || dragStartRef.current?.source !== source) return;
         const action = Math.abs(dragOffset) > 80 ? getActiveAction(dragOffset) : null;
 
         if (action === 'hide') {
@@ -119,6 +118,39 @@ export default function ItemCard({ item, mode }) {
         }
 
         resetDrag();
+    };
+
+    const handlePointerDown = (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (dragStartRef.current?.source === 'touch') return;
+        startDrag({ x: e.clientX, y: e.clientY }, 'pointer');
+    };
+
+    const handlePointerMove = (e) => {
+        updateDrag({ x: e.clientX, y: e.clientY }, 'pointer');
+    };
+
+    const handlePointerEnd = () => {
+        endDrag('pointer');
+    };
+
+    const handleTouchStart = (e) => {
+        if (!e.touches?.length) return;
+        startDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
+    };
+
+    const handleTouchMove = (e) => {
+        if (!e.touches?.length) return;
+        updateDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!e.changedTouches?.length) return;
+        lastPointerRef.current = {
+            x: e.changedTouches[0].clientX,
+            y: e.changedTouches[0].clientY
+        };
+        endDrag('touch');
     };
 
     const activeAction = getActiveAction(dragOffset);
@@ -140,21 +172,25 @@ export default function ItemCard({ item, mode }) {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerEnd}
             onPointerCancel={handlePointerEnd}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
         >
             <div
                 className={`absolute inset-0 rounded-xl px-4 flex items-center justify-between select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : activeAction ? rightBg : 'bg-gray-50'}`}
+                style={{ touchAction: 'pan-y' }}
             >
-                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap text-red-500 transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
-                    {leftActionLabel}
-                </span>
                 <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap ${rightActionColor} transition-opacity ${dragOffset > 10 ? 'opacity-100' : 'opacity-40'}`}>
                     {rightActionLabel}
+                </span>
+                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap text-red-500 text-right transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
+                    {leftActionLabel}
                 </span>
             </div>
 
             <div
                 className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
-                style={{ transform: `translateX(${dragOffset}px)` }}
+                style={{ transform: `translateX(${dragOffset}px)`, touchAction: 'pan-y' }}
             >
             <div className="flex-1 flex items-center gap-2">
                 {isEditing ? (

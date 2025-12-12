@@ -10,15 +10,15 @@ export default function Layout({ children }) {
 
     const isActive = (path) => location.pathname === path;
 
-    const handlePointerDown = (e) => {
-        if (e.pointerType !== 'touch') return;
-        touchStartRef.current = { x: e.clientX, y: e.clientY };
+    const startSwipe = (point, source) => {
+        touchStartRef.current = { ...point, source };
     };
 
-    const handlePointerUp = (e) => {
-        if (e.pointerType !== 'touch' || !touchStartRef.current) return;
-        const dx = e.clientX - touchStartRef.current.x;
-        const dy = e.clientY - touchStartRef.current.y;
+    const finishSwipe = (point, source) => {
+        if (!touchStartRef.current || touchStartRef.current.source !== source) return;
+
+        const dx = point.x - touchStartRef.current.x;
+        const dy = point.y - touchStartRef.current.y;
 
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
             if (dx < 0 && !isActive('/stock')) {
@@ -31,6 +31,26 @@ export default function Layout({ children }) {
         touchStartRef.current = null;
     };
 
+    const handlePointerDown = (e) => {
+        if (e.pointerType !== 'touch' || touchStartRef.current?.source === 'touch') return;
+        startSwipe({ x: e.clientX, y: e.clientY }, 'pointer');
+    };
+
+    const handlePointerUp = (e) => {
+        if (e.pointerType !== 'touch') return;
+        finishSwipe({ x: e.clientX, y: e.clientY }, 'pointer');
+    };
+
+    const handleTouchStart = (e) => {
+        if (!e.touches?.length) return;
+        startSwipe({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!e.changedTouches?.length) return;
+        finishSwipe({ x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY }, 'touch');
+    };
+
     return (
         <div className="flex flex-col h-screen bg-brand-50 text-gray-800 font-sans overflow-hidden">
             {/* Persistent Header */}
@@ -41,6 +61,9 @@ export default function Layout({ children }) {
                 className="flex-1 overflow-y-auto pb-24 relative p-4 space-y-4"
                 onPointerDown={handlePointerDown}
                 onPointerUp={handlePointerUp}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                style={{ touchAction: 'pan-y' }}
                 aria-label="Swipe left or right on empty space to switch between tabs"
             >
                 <p className="sr-only">
