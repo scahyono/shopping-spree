@@ -123,6 +123,36 @@ describe('SmartOmnibox', () => {
         });
     });
 
+    test('backspace_should_pause_autocomplete_until_next_input', async () => {
+        const { input } = renderHarness();
+
+        fireEvent.change(input, { target: { value: 'Apple' } });
+        await waitFor(() => expect(input.value).toBe('Apple'));
+
+        fireEvent.keyDown(input, { key: 'Backspace' });
+        fireEvent.input(input, {
+            target: { value: 'Appl' },
+            nativeEvent: { inputType: 'deleteContentBackward' },
+        });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Appl');
+            expect(input.selectionStart).toBe(4);
+            expect(input.selectionEnd).toBe(4);
+        });
+
+        fireEvent.input(input, {
+            target: { value: 'Apple' },
+            nativeEvent: { inputType: 'insertText' },
+        });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Apple');
+            expect(input.selectionStart).toBe(5);
+            expect(input.selectionEnd).toBe(5);
+        });
+    });
+
     test('enter_should_restore_hidden_item', async () => {
         const { input, itemsRef } = renderHarness();
 

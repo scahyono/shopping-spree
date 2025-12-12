@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { findBestSuggestion, normalizeName } from '../utils/omnibox';
 
 export function useSmartOmnibox({
@@ -14,6 +14,7 @@ export function useSmartOmnibox({
     const [baseQuery, setBaseQuery] = useState('');
     const [pendingSelection, setPendingSelection] = useState(null);
     const [autocompletePaused, setAutocompletePaused] = useState(false);
+    const lastBackspaceRef = useRef(false);
 
     useEffect(() => {
         onQueryChange?.(baseQuery.trim());
@@ -64,8 +65,11 @@ export function useSmartOmnibox({
 
     const handleChange = (e) => {
         const rawValue = e.target.value;
-        const shouldResumeAutocomplete = e.nativeEvent?.inputType?.startsWith('insert') || rawValue === '';
-        const nextPaused = shouldResumeAutocomplete ? false : autocompletePaused;
+        const inputType = e.inputType || e.nativeEvent?.inputType;
+        const isDelete = inputType === 'deleteContentBackward' || lastBackspaceRef.current;
+        lastBackspaceRef.current = false;
+        const shouldResumeAutocomplete = inputType?.startsWith('insert') || rawValue === '';
+        const nextPaused = isDelete ? true : (shouldResumeAutocomplete ? false : autocompletePaused);
         setAutocompletePaused(nextPaused);
 
         setBaseQuery(rawValue);
@@ -128,7 +132,11 @@ export function useSmartOmnibox({
 
     const handleKeyDown = (e) => {
         if (e.key === 'Backspace') {
-            if (handleBackspace(e)) return;
+            lastBackspaceRef.current = true;
+            if (handleBackspace(e)) {
+                lastBackspaceRef.current = false;
+                return;
+            }
         }
 
         if (e.key === 'Enter') {
