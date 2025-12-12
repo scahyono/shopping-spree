@@ -15,6 +15,8 @@ export function useSmartOmnibox({
     const [pendingSelection, setPendingSelection] = useState(null);
     const [autocompletePaused, setAutocompletePaused] = useState(false);
     const lastBackspaceRef = useRef(false);
+    const hadSuggestionRef = useRef(false);
+    const skipAutocompleteOnceRef = useRef(false);
 
     useEffect(() => {
         onQueryChange?.(baseQuery.trim());
@@ -34,6 +36,8 @@ export function useSmartOmnibox({
     };
 
     const applyAutocomplete = (rawValue, pausedOverride = autocompletePaused) => {
+        hadSuggestionRef.current = false;
+
         if (!rawValue) {
             setValue('');
             setPendingSelection({ start: 0, end: 0 });
@@ -53,6 +57,7 @@ export function useSmartOmnibox({
             const normalizedInput = normalizeName(rawValue);
 
             if (lowerName.startsWith(normalizedInput) && suggestionName.length > rawValue.length) {
+                hadSuggestionRef.current = true;
                 setValue(suggestionName);
                 setPendingSelection({ start: rawValue.length, end: suggestionName.length });
                 return;
@@ -67,13 +72,26 @@ export function useSmartOmnibox({
         const rawValue = e.target.value;
         const inputType = e.inputType || e.nativeEvent?.inputType;
         const isDelete = inputType === 'deleteContentBackward' || lastBackspaceRef.current;
+        const isInsert = inputType?.startsWith('insert') ?? !isDelete;
+        const wasAutocompleting = hadSuggestionRef.current;
+        const hadBackspace = lastBackspaceRef.current;
+        if (isInsert && (wasAutocompleting || hadBackspace)) {
+            skipAutocompleteOnceRef.current = true;
+            hadSuggestionRef.current = false;
+        }
         lastBackspaceRef.current = false;
-        const shouldResumeAutocomplete = inputType?.startsWith('insert') || rawValue === '';
+
+        const shouldResumeAutocomplete = isInsert || rawValue === '';
         const nextPaused = isDelete ? true : (shouldResumeAutocomplete ? false : autocompletePaused);
+        const skipThisChange = skipAutocompleteOnceRef.current && isInsert;
+        if (skipThisChange) {
+            skipAutocompleteOnceRef.current = false;
+        }
+
         setAutocompletePaused(nextPaused);
 
         setBaseQuery(rawValue);
-        applyAutocomplete(rawValue, nextPaused);
+        applyAutocomplete(rawValue, skipThisChange ? true : nextPaused);
     };
 
     const handleBackspace = (e) => {
@@ -83,6 +101,7 @@ export function useSmartOmnibox({
         if (selectionStart !== selectionEnd) {
             e.preventDefault();
             const prefix = value.slice(0, selectionStart) + value.slice(selectionEnd);
+            skipAutocompleteOnceRef.current = true;
             setAutocompletePaused(true);
             setBaseQuery(prefix);
             setValue(prefix);
@@ -93,6 +112,7 @@ export function useSmartOmnibox({
         if (value.length > baseQuery.length) {
             e.preventDefault();
             const trimmed = value.slice(0, selectionStart);
+            skipAutocompleteOnceRef.current = true;
             setAutocompletePaused(true);
             setBaseQuery(trimmed);
             setValue(trimmed);

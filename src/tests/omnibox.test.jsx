@@ -99,12 +99,27 @@ describe('SmartOmnibox', () => {
         fireEvent.change(input, { target: { value: 'A' } });
         await waitFor(() => expect(input.value).toBe('Apple'));
 
-        fireEvent.change(input, { target: { value: 'Ar' } });
+        fireEvent.change(input, { target: { value: 'Ar' }, nativeEvent: { inputType: 'insertText' } });
 
         await waitFor(() => {
             expect(input.value.startsWith('Ar')).toBe(true);
             expect(input.value).not.toBe('Apple');
             expect(input.selectionStart).toBe(2);
+        });
+    });
+
+    test('typing_one_character_should_restart_autocomplete', async () => {
+        const { input } = renderHarness();
+
+        fireEvent.change(input, { target: { value: 'A' }, nativeEvent: { inputType: 'insertText' } });
+        await waitFor(() => expect(input.value).toBe('Apple'));
+
+        fireEvent.change(input, { target: { value: 'Ap' }, nativeEvent: { inputType: 'insertText' } });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Ap');
+            expect(input.selectionStart).toBe(2);
+            expect(input.selectionEnd).toBe(2);
         });
     });
 
@@ -149,6 +164,41 @@ describe('SmartOmnibox', () => {
         await waitFor(() => {
             expect(input.value).toBe('Apple');
             expect(input.selectionStart).toBe(5);
+            expect(input.selectionEnd).toBe(5);
+        });
+    });
+
+    test('typing_after_backspace_should_not_replace_word', async () => {
+        const { input } = renderHarness();
+
+        fireEvent.change(input, { target: { value: 'A' }, nativeEvent: { inputType: 'insertText' } });
+        await waitFor(() => expect(input.value).toBe('Apple'));
+
+        fireEvent.keyDown(input, { key: 'Backspace' });
+        fireEvent.input(input, {
+            target: { value: 'A' },
+            nativeEvent: { inputType: 'deleteContentBackward' },
+        });
+
+        await waitFor(() => {
+            expect(input.value).toBe('A');
+            expect(input.selectionStart).toBe(1);
+            expect(input.selectionEnd).toBe(1);
+        });
+
+        fireEvent.change(input, { target: { value: 'Ap' }, nativeEvent: { inputType: 'insertText' } });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Ap');
+            expect(input.selectionStart).toBe(2);
+            expect(input.selectionEnd).toBe(2);
+        });
+
+        fireEvent.change(input, { target: { value: 'App' }, nativeEvent: { inputType: 'insertText' } });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Apple');
+            expect(input.selectionStart).toBe(3);
             expect(input.selectionEnd).toBe(5);
         });
     });
