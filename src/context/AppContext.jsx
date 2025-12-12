@@ -244,6 +244,7 @@ export function AppProvider({ children }) {
         budget,
         items,
         loading,
+        currentUser,
         actions: {
             updateBudget,
             addItem,
