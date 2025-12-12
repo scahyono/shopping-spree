@@ -86,6 +86,16 @@ export function useSmartOmnibox({
             return true;
         }
 
+        if (value.length > baseQuery.length) {
+            e.preventDefault();
+            const trimmed = value.slice(0, selectionStart);
+            setAutocompletePaused(true);
+            setBaseQuery(trimmed);
+            setValue(trimmed);
+            setPendingSelection({ start: trimmed.length, end: trimmed.length });
+            return true;
+        }
+
         return false;
     };
 
