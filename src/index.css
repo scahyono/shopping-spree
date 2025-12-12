@@ -36,3 +36,35 @@ body {
     50% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0.15); }
     100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
 }
+
+.swipe-slide-left {
+    animation: swipe-slide-left 180ms ease-out;
+}
+
+.swipe-slide-right {
+    animation: swipe-slide-right 180ms ease-out;
+}
+
+@keyframes swipe-slide-left {
+    from {
+        transform: translateX(18px);
+        opacity: 0.96;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes swipe-slide-right {
+    from {
+        transform: translateX(-18px);
+        opacity: 0.96;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
