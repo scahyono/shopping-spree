@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Search } from 'lucide-react';
+import { Search, XCircle } from 'lucide-react';
 import useSmartOmnibox from '../hooks/useSmartOmnibox';
 
 export default function SmartOmnibox({
@@ -46,9 +46,10 @@ export default function SmartOmnibox({
                             clearInput();
                             inputRef.current?.focus();
                         }}
-                        className="absolute right-12 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+                        className="absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-white"
+                        aria-label="Clear filter"
                     >
-                        Clear
+                        <XCircle size={18} aria-hidden />
                     </button>
                 )}
                 <button
