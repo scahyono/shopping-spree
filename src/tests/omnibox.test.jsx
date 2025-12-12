@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { fireEvent, render, waitFor } from '@testing-library/react';
-import SmartOmnibox from '../components/SmartOmnibox';
+import useSmartOmnibox from '../hooks/useSmartOmnibox';
 
 const BASE_ITEMS = [
     { id: '1', name: 'Apple', isOnShoppingList: false, isInStock: false },
@@ -9,6 +9,33 @@ const BASE_ITEMS = [
     { id: '3', name: 'Arugula', isOnShoppingList: false, isInStock: false },
     { id: '4', name: 'Banana', isOnShoppingList: true, isInStock: false }
 ];
+
+function TestOmnibox({ items, isActive, activateItem, createItem, onExistingActive, onQueryChange }) {
+    const inputRef = useRef(null);
+
+    const { value, handleChange, handleKeyDown, handleSubmit } = useSmartOmnibox({
+        items,
+        isActive,
+        activateItem,
+        createItem,
+        onExistingActive,
+        onQueryChange,
+        inputRef,
+    });
+
+    return (
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+            <input
+                ref={inputRef}
+                placeholder="Search or add item..."
+                aria-label="Search or add item"
+                value={value}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+            />
+        </form>
+    );
+}
 
 function renderHarness({
     initialItems = BASE_ITEMS,
@@ -38,14 +65,12 @@ function renderHarness({
         }, [items]);
 
         return (
-            <SmartOmnibox
+            <TestOmnibox
                 items={items}
                 isActive={isActive}
                 activateItem={activateItem}
                 createItem={createItem}
                 onExistingActive={vi.fn()}
-                placeholder="Search or add item..."
-                actionLabel="Submit"
             />
         );
     };
