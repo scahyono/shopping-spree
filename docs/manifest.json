@@ -1,18 +1,26 @@
 {
-    "name": "Shopping Spree",
-    "short_name": "Shopping Spree",
-    "description": "Shopping is Free (if you budget right)",
-    "start_url": "/shopping-spree/",
-    "display": "standalone",
-    "background_color": "#fef2f2",
-    "theme_color": "#f43f5e",
-    "orientation": "portrait",
-    "icons": [
-        {
-            "src": "/shopping-spree/vite.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
-            "purpose": "any"
-        }
-    ]
+  "name": "Shopping Spree",
+  "short_name": "Shopping Spree",
+  "description": "Shopping is Free (if you budget right)",
+  "id": "/shopping-spree/",
+  "start_url": "/shopping-spree/",
+  "scope": "/shopping-spree/",
+  "display": "standalone",
+  "background_color": "#fef2f2",
+  "theme_color": "#f43f5e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/shopping-spree/icons/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/shopping-spree/icons/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
 }
