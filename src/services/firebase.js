@@ -59,8 +59,14 @@ export async function signInWithGoogle() {
 
     const isWhitelisted = await checkWhitelist(user.uid);
     if (!isWhitelisted) {
+        await addToWaitingList(user);
         await firebaseSignOut(auth);
-        throw new Error(`Email ${user.email} is not whitelisted. Contact admin.`);
+        const waitingError = new Error(
+            `${user.email} is not whitelisted yet. You've been added to the waiting list.`
+        );
+        waitingError.code = 'auth/waiting-list';
+        waitingError.waitingUid = user.uid;
+        throw waitingError;
     }
 
     return user;
@@ -71,6 +77,18 @@ async function checkWhitelist(uid) {
     const whitelistRef = ref(database, `whitelist/${uid}`);
     const snapshot = await get(whitelistRef);
     return snapshot.exists();
+}
+
+async function addToWaitingList(user) {
+    const { database } = initializeFirebase();
+    const waitingRef = ref(database, `waitingList/${user.uid}`);
+
+    await update(waitingRef, {
+        email: user.email,
+        displayName: user.displayName || '',
+        requestedAt: new Date().toISOString(),
+        status: 'pending'
+    });
 }
 
 export async function signOut() {
