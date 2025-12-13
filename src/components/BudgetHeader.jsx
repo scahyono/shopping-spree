@@ -19,20 +19,6 @@ export default function BudgetHeader() {
         }
     };
 
-    const buildsForComparison = [
-        {
-            title: 'Local package',
-            buildNumber: buildInfo.buildNumber ?? '—',
-            builtAt: formatBuildTimestamp(buildInfo.builtAt)
-        },
-        {
-            title: 'Database',
-            buildNumber: remoteBuildInfo?.buildNumber ?? '—',
-            builtAt: remoteBuildInfo ? formatBuildTimestamp(remoteBuildInfo.builtAt) : '—',
-            subtitle: remoteBuildInfo ? null : 'Waiting for database build metadata'
-        }
-    ];
-
     useEffect(() => {
         let unsubscribe;
 
@@ -95,20 +81,8 @@ export default function BudgetHeader() {
                         <div className="flex items-start justify-between gap-4 text-xs uppercase tracking-wide text-brand-100">
                             <div className="flex flex-col gap-1">
                                 <span className="font-semibold">Labs</span>
-                                <span className="text-[11px] opacity-80">Build metadata comparisons</span>
+                                <span className="text-[11px] opacity-80">Budget configuration</span>
                             </div>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            {buildsForComparison.map(({ title, buildNumber, builtAt, subtitle }) => (
-                                <div key={title} className="bg-brand-700/70 rounded-lg border border-brand-500/60 p-3 flex flex-col gap-1">
-                                    <div className="text-[11px] uppercase tracking-wide text-brand-100 flex items-center justify-between">
-                                        <span className="font-semibold">{title}</span>
-                                        <span className="text-[10px] text-white/60">Build #{buildNumber}</span>
-                                    </div>
-                                    <div className="text-sm font-semibold text-white">{builtAt}</div>
-                                    {subtitle && <div className="text-[11px] text-white/60">{subtitle}</div>}
-                                </div>
-                            ))}
                         </div>
                         {['income', 'needs', 'future', 'wants'].map(cat => (
                             <div key={cat} className="flex items-center justify-between">
@@ -145,6 +119,20 @@ export default function BudgetHeader() {
                                 </div>
                             </div>
                         ))}
+                        <div className="mt-4 pt-4 border-t border-brand-500/60 text-[11px] uppercase tracking-wide text-brand-100 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <span className="font-semibold">Build metadata</span>
+                            <div className="text-sm font-semibold text-white flex flex-wrap items-center gap-2">
+                                <span>Local #{buildInfo.buildNumber ?? '—'}</span>
+                                <span className="text-white/40">/</span>
+                                <span>Database #{remoteBuildInfo?.buildNumber ?? '—'}</span>
+                                {remoteBuildInfo?.builtAt && (
+                                    <span className="text-[11px] font-medium text-white/60">(updated {formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
+                                )}
+                                {!remoteBuildInfo && (
+                                    <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
