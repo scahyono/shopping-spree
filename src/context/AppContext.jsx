@@ -21,6 +21,21 @@ const DEMO_BUDGET = {
     wants: { target: 2000, actual: 150 } // 5000 - 2000 - 1000
 };
 
+const parseNumericExpression = (rawValue, fallback = 0) => {
+    const trimmed = String(rawValue ?? '').trim();
+
+    if (trimmed === '') return 0;
+
+    const parts = trimmed.match(/[+-]?\s*\d*\.?\d+/g);
+    if (parts?.length) {
+        const total = parts.reduce((sum, part) => sum + Number(part.replace(/\s+/g, '')), 0);
+        if (!Number.isNaN(total)) return total;
+    }
+
+    const numeric = Number(trimmed);
+    return Number.isNaN(numeric) ? fallback : numeric;
+};
+
 export function AppProvider({ children }) {
     const [budget, setBudget] = useState(null);
     const [items, setItems] = useState([]);
@@ -125,34 +140,36 @@ export function AppProvider({ children }) {
         if (category === 'wants' && field === 'target') return;
 
         setBudget(prev => {
+            const resolvedValue = parseNumericExpression(value, prev?.[category]?.[field]);
+
             const nextBudget = {
                 ...prev,
                 [category]: {
                     ...prev[category],
-                    [field]: Number(value)
+                    [field]: resolvedValue
                 }
             };
 
             // Auto-calculate Income Actual = Sum of other Actuals
             // Get the provisional values for calculations
-            const needsActual = category === 'needs' && field === 'actual' ? Number(value) : nextBudget.needs.actual;
-            const futureActual = category === 'future' && field === 'actual' ? Number(value) : nextBudget.future.actual;
-            const wantsActual = category === 'wants' && field === 'actual' ? Number(value) : nextBudget.wants.actual;
+            const needsActual = category === 'needs' && field === 'actual' ? resolvedValue : nextBudget.needs.actual;
+            const futureActual = category === 'future' && field === 'actual' ? resolvedValue : nextBudget.future.actual;
+            const wantsActual = category === 'wants' && field === 'actual' ? resolvedValue : nextBudget.wants.actual;
 
             nextBudget.income.actual = calculateIncomeActual(needsActual, futureActual, wantsActual);
 
             // Auto-calculate Wants Target = Income Target - Needs Target - Future Target
             // We use the NEW values if they are being updated, otherwise current values
-            const incomeTarget = category === 'income' && field === 'target' ? Number(value) : nextBudget.income.target;
-            const needsTarget = category === 'needs' && field === 'target' ? Number(value) : nextBudget.needs.target;
-            const futureTarget = category === 'future' && field === 'target' ? Number(value) : nextBudget.future.target;
+            const incomeTarget = category === 'income' && field === 'target' ? resolvedValue : nextBudget.income.target;
+            const needsTarget = category === 'needs' && field === 'target' ? resolvedValue : nextBudget.needs.target;
+            const futureTarget = category === 'future' && field === 'target' ? resolvedValue : nextBudget.future.target;
 
             nextBudget.wants.target = calculateWantsTarget(incomeTarget, needsTarget, futureTarget);
 
             // Sync to Firebase granularly if user is authenticated
             if (currentUser) {
                 // Sync the directly updated field
-                updateBudgetField(category, field, Number(value)).catch(console.error);
+                updateBudgetField(category, field, resolvedValue).catch(console.error);
 
                 // Sync derived fields
                 if (category === 'needs' || category === 'future' || category === 'wants') {

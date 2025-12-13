@@ -38,7 +38,7 @@ export default function StockPage() {
 
     return (
         <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Inventory</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Stock Checklist</h2>
 
             <SmartOmnibox
                 items={items}
