@@ -275,10 +275,14 @@ export function AppProvider({ children }) {
         }));
     };
 
-    const hideItem = (id) => {
+    const hideItem = (id, source = 'both') => {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            const updatedItem = { ...item, isInStock: false, isOnShoppingList: false };
+            const updatedItem = {
+                ...item,
+                isInStock: source === 'shop' ? item.isInStock : false,
+                isOnShoppingList: source === 'stock' ? item.isOnShoppingList : false
+            };
 
             // Sync to Firebase granularly
             if (currentUser) {

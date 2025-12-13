@@ -116,12 +116,25 @@ Example `whitelist` structure:
     "family": {
       "shared": {
         ".read": "auth != null && root.child('whitelist').child(auth.uid).exists()",
-        ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()"
+        ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()",
+        "buildInfo": {
+          ".read": "auth != null && root.child('whitelist').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()"
+        }
       }
     }
   }
 }
 ```
+
+#### 4.5 Build metadata sync
+The deploy script bumps the build number and can also write the updated build metadata into `family/shared/buildInfo` in the Realtime Database. Provide one of the following credentials before running `npm run deploy` so the write succeeds:
+
+- `FIREBASE_SERVICE_ACCOUNT`: Inline JSON string containing the Firebase service account.
+- `FIREBASE_SERVICE_ACCOUNT_PATH`: Path to a JSON file with the Firebase service account (relative paths are resolved from the project root).
+- `FIREBASE_DATABASE_AUTH`: A database auth token (ID token or database secret) with permission to write to `family/shared/buildInfo`.
+
+If none of these values are set, the deploy still runs but skips writing build metadata to the cloud.
 
 #### 4. Sign In and Sync
 1. Click **Sign In with Google** in the app header

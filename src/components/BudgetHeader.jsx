@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
@@ -7,16 +7,40 @@ import buildInfo from '../buildInfo.json';
 export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
+    const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
+    const activeBuildInfo = useMemo(
+        () => remoteBuildInfo || buildInfo,
+        [remoteBuildInfo]
+    );
     const buildStamp = useMemo(() => {
-        if (!buildInfo?.builtAt) return null;
+        if (!activeBuildInfo?.builtAt) return null;
         try {
-            return new Date(buildInfo.builtAt).toLocaleString();
+            return new Date(activeBuildInfo.builtAt).toLocaleString();
         } catch {
-            return buildInfo.builtAt;
+            return activeBuildInfo.builtAt;
         }
-    }, []);
+    }, [activeBuildInfo?.builtAt]);
+
+    useEffect(() => {
+        let unsubscribe;
+
+        if (!currentUser) {
+            setRemoteBuildInfo(null);
+            return undefined;
+        }
+
+        import('../services/firebase')
+            .then(({ listenToBuildInfo }) => {
+                unsubscribe = listenToBuildInfo((info) => setRemoteBuildInfo(info));
+            })
+            .catch((error) => {
+                console.error('Build info listener error:', error);
+            });
+
+        return () => unsubscribe?.();
+    }, [currentUser]);
 
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
 
@@ -54,7 +78,13 @@ export default function BudgetHeader() {
                         —
                     </div>
                 )}
-                <div className="flex justify-end">
+                <div className="flex justify-end items-start gap-3 text-right">
+                    <div className="text-[11px] leading-tight text-white/80">
+                        <div className="font-semibold">Build #{activeBuildInfo?.buildNumber ?? '—'}</div>
+                        <div className="uppercase tracking-wide text-[10px] opacity-75">
+                            {remoteBuildInfo ? 'Database' : 'Local package'}
+                        </div>
+                    </div>
                     <SyncControls compact />
                 </div>
             </div>
@@ -69,7 +99,7 @@ export default function BudgetHeader() {
                                 <span className="text-[11px] opacity-80">Code-tracked build metadata</span>
                             </div>
                             <div className="text-right">
-                                <div className="text-sm font-bold">Build #{buildInfo.buildNumber ?? '—'}</div>
+                                <div className="text-sm font-bold">Build #{activeBuildInfo.buildNumber ?? '—'}</div>
                                 {buildStamp && <div className="text-[11px] opacity-70">Built {buildStamp}</div>}
                             </div>
                         </div>
