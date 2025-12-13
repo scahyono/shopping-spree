@@ -106,7 +106,7 @@ export default function ItemCard({ item, mode }) {
         const action = Math.abs(dragOffset) > 80 ? getActiveAction(dragOffset) : null;
 
         if (action === 'hide') {
-            actions.hideItem(item.id);
+            actions.hideItem(item.id, mode);
         }
 
         resetDrag();

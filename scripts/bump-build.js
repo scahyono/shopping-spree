@@ -34,4 +34,9 @@ function bump() {
     console.log(`[bump-build] Build number updated to ${next.buildNumber}`);
 }
 
-bump();
+try {
+    bump();
+} catch (error) {
+    console.error('[bump-build] Fatal error while bumping build number.', error);
+    process.exitCode = 1;
+}

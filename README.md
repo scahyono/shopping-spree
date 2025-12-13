@@ -118,10 +118,19 @@ Example `whitelist` structure:
         ".read": "auth != null && root.child('whitelist').child(auth.uid).exists()",
         ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()"
       }
+    },
+    "buildInfo": {
+      ".read": "true",
+      ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()",
+      ".validate": "newData.hasChildren(['buildNumber', 'builtAt'])"
     }
   }
 }
+}
 ```
+
+#### 4.5 Build metadata sync
+The deploy script still bumps the local build number, but the app now writes build metadata to the top-level `buildInfo` node only after a signed-in, whitelisted user connects to Firebase. When the app detects that the database build number is lower than the bundled build number, it updates the remote entry to match. Reads remain open for visibility while writes are constrained to whitelisted users via the rule above.
 
 #### 4. Sign In and Sync
 1. Click **Sign In with Google** in the app header

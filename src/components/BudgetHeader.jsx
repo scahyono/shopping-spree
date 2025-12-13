@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
@@ -7,15 +7,33 @@ import buildInfo from '../buildInfo.json';
 export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
+    const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
-    const buildStamp = useMemo(() => {
-        if (!buildInfo?.builtAt) return null;
+    const formatBuildTimestamp = (timestamp) => {
+        if (!timestamp) return '—';
         try {
-            return new Date(buildInfo.builtAt).toLocaleString();
+            const date = new Date(timestamp);
+            const pad = (value) => value.toString().padStart(2, '0');
+
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
         } catch {
-            return buildInfo.builtAt;
+            return timestamp;
         }
+    };
+
+    useEffect(() => {
+        let unsubscribe;
+
+        import('../services/firebase')
+            .then(({ listenToBuildInfo }) => {
+                unsubscribe = listenToBuildInfo((info) => setRemoteBuildInfo(info));
+            })
+            .catch((error) => {
+                console.error('Build info listener error:', error);
+            });
+
+        return () => unsubscribe?.();
     }, []);
 
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
@@ -54,7 +72,7 @@ export default function BudgetHeader() {
                         —
                     </div>
                 )}
-                <div className="flex justify-end">
+                <div className="flex justify-end items-start text-right">
                     <SyncControls compact />
                 </div>
             </div>
@@ -66,11 +84,7 @@ export default function BudgetHeader() {
                         <div className="flex items-start justify-between gap-4 text-xs uppercase tracking-wide text-brand-100">
                             <div className="flex flex-col gap-1">
                                 <span className="font-semibold">Labs</span>
-                                <span className="text-[11px] opacity-80">Code-tracked build metadata</span>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm font-bold">Build #{buildInfo.buildNumber ?? '—'}</div>
-                                {buildStamp && <div className="text-[11px] opacity-70">Built {buildStamp}</div>}
+                                <span className="text-[11px] opacity-80">Budget configuration</span>
                             </div>
                         </div>
                         {['income', 'needs', 'future', 'wants'].map(cat => (
@@ -108,6 +122,18 @@ export default function BudgetHeader() {
                                 </div>
                             </div>
                         ))}
+                        <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">
+                            <div className="text-sm font-semibold text-white flex flex-wrap items-center gap-2 text-right">
+                                <span>Build #{buildInfo.buildNumber ?? '—'}</span>
+                                <span className="text-white/40">/</span>
+                                <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
+                                {remoteBuildInfo?.builtAt ? (
+                                    <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
+                                ) : (
+                                    <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
