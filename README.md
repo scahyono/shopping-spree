@@ -129,15 +129,13 @@ Example `whitelist` structure:
 ```
 
 #### 4.5 Build metadata sync
-The deploy script bumps the build number and can also write the updated build metadata into `family/shared/buildInfo` in the Realtime Database using least-privilege credentials that can only touch that node. Provide one of the following before running `npm run deploy` so the write succeeds:
+The deploy script bumps the build number and writes the updated metadata into `family/shared/buildInfo` in the Realtime Database using a least-privilege build bot account baked into the script.
 
-- `FIREBASE_SERVICE_ACCOUNT`: Inline JSON string containing the Firebase service account.
-- `FIREBASE_SERVICE_ACCOUNT_PATH`: Path to a JSON file with the Firebase service account (relative paths are resolved from the project root).
-- `FIREBASE_DATABASE_AUTH`: An ID token (recommended) with permission to write to `family/shared/buildInfo` — ideally for the build bot user.
-- `FIREBASE_BUILD_BOT_UID` (optional): Override the default build bot UID if your project uses a different dedicated writer.
-- `FIREBASE_BUILD_BOT_EMAIL` (optional): Override the default identity used in metadata when the build bot writes.
+- **Identity**: UID `f1Csbq9tI1gqg0mZ7IVSiVFpTWx1`, email `builtbot@shopping-spree.bot`.
+- **Password**: Derived on the fly from the email (the portion before `@`), so no secret is stored in the codebase.
+- **Scope**: Only the `family/shared/buildInfo` node is touched; security rules should continue to restrict writes to this UID (or admin tokens) only.
 
-If you prefer not to pass a user password into the build, use the service account to mint a custom token for the build bot (UID `f1Csbq9tI1gqg0mZ7IVSiVFpTWx1`, email `builtbot@shopping-spree.bot`). The build script will exchange the custom token for an ID token automatically and store the build info under that constrained identity. If none of these values are set, the deploy still runs but skips writing build metadata to the cloud.
+No environment variables are required to sync build metadata—the deploy uses the embedded credentials automatically and will surface an error in CI if the build bot is missing or blocked by rules.
 
 #### 4. Sign In and Sync
 1. Click **Sign In with Google** in the app header
