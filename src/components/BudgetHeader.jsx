@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
@@ -10,18 +10,28 @@ export default function BudgetHeader() {
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
-    const activeBuildInfo = useMemo(
-        () => remoteBuildInfo || buildInfo,
-        [remoteBuildInfo]
-    );
-    const buildStamp = useMemo(() => {
-        if (!activeBuildInfo?.builtAt) return null;
+    const formatBuildTimestamp = (timestamp) => {
+        if (!timestamp) return '—';
         try {
-            return new Date(activeBuildInfo.builtAt).toLocaleString();
+            return new Date(timestamp).toLocaleString();
         } catch {
-            return activeBuildInfo.builtAt;
+            return timestamp;
         }
-    }, [activeBuildInfo?.builtAt]);
+    };
+
+    const buildsForComparison = [
+        {
+            title: 'Local package',
+            buildNumber: buildInfo.buildNumber ?? '—',
+            builtAt: formatBuildTimestamp(buildInfo.builtAt)
+        },
+        {
+            title: 'Database',
+            buildNumber: remoteBuildInfo?.buildNumber ?? '—',
+            builtAt: remoteBuildInfo ? formatBuildTimestamp(remoteBuildInfo.builtAt) : '—',
+            subtitle: remoteBuildInfo ? null : 'Waiting for database build metadata'
+        }
+    ];
 
     useEffect(() => {
         let unsubscribe;
@@ -73,13 +83,7 @@ export default function BudgetHeader() {
                         —
                     </div>
                 )}
-                <div className="flex justify-end items-start gap-3 text-right">
-                    <div className="text-[11px] leading-tight text-white/80">
-                        <div className="font-semibold">Build #{activeBuildInfo?.buildNumber ?? '—'}</div>
-                        <div className="uppercase tracking-wide text-[10px] opacity-75">
-                            {remoteBuildInfo ? 'Database' : 'Local package'}
-                        </div>
-                    </div>
+                <div className="flex justify-end items-start text-right">
                     <SyncControls compact />
                 </div>
             </div>
@@ -91,12 +95,20 @@ export default function BudgetHeader() {
                         <div className="flex items-start justify-between gap-4 text-xs uppercase tracking-wide text-brand-100">
                             <div className="flex flex-col gap-1">
                                 <span className="font-semibold">Labs</span>
-                                <span className="text-[11px] opacity-80">Code-tracked build metadata</span>
+                                <span className="text-[11px] opacity-80">Build metadata comparisons</span>
                             </div>
-                            <div className="text-right">
-                                <div className="text-sm font-bold">Build #{activeBuildInfo.buildNumber ?? '—'}</div>
-                                {buildStamp && <div className="text-[11px] opacity-70">Built {buildStamp}</div>}
-                            </div>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            {buildsForComparison.map(({ title, buildNumber, builtAt, subtitle }) => (
+                                <div key={title} className="bg-brand-700/70 rounded-lg border border-brand-500/60 p-3 flex flex-col gap-1">
+                                    <div className="text-[11px] uppercase tracking-wide text-brand-100 flex items-center justify-between">
+                                        <span className="font-semibold">{title}</span>
+                                        <span className="text-[10px] text-white/60">Build #{buildNumber}</span>
+                                    </div>
+                                    <div className="text-sm font-semibold text-white">{builtAt}</div>
+                                    {subtitle && <div className="text-[11px] text-white/60">{subtitle}</div>}
+                                </div>
+                            ))}
                         </div>
                         {['income', 'needs', 'future', 'wants'].map(cat => (
                             <div key={cat} className="flex items-center justify-between">
