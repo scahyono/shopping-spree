@@ -37,8 +37,8 @@ export default function StockPage() {
     };
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Inventory</h2>
+        <div className="space-y-3 sm:space-y-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">Inventory</h2>
 
             <SmartOmnibox
                 items={items}
@@ -53,7 +53,7 @@ export default function StockPage() {
             />
 
             {!hasQuery && stockItems.length === 0 && (
-                <div className="text-center py-10 opacity-50">
+                <div className="text-center py-8 sm:py-10 opacity-50">
                     <p>Your pantry is empty.</p>
                 </div>
             )}
@@ -63,7 +63,7 @@ export default function StockPage() {
                     {sortedMatches.length === 0 ? (
                         <p className="text-sm text-gray-500">No matches found. Press Enter to add &quot;{query.trim()}&quot;.</p>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2.5 sm:space-y-3">
                             {visibleAddableMatches.length > 0 && (
                                 <div className="space-y-2">
                                     <p className="text-xs uppercase tracking-wide text-gray-500">Available to add</p>
