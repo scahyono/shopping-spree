@@ -165,7 +165,7 @@ export default function ItemCard({ item, mode }) {
             onTouchEnd={handleTouchEnd}
         >
             <div
-                className={`absolute inset-0 rounded-xl px-4 flex items-center justify-end select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : 'bg-gray-50'}`}
+                className={`absolute inset-0 rounded-xl px-3 sm:px-4 flex items-center justify-end select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : 'bg-gray-50'}`}
                 style={{ touchAction: 'pan-y' }}
             >
                 <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap text-red-500 text-right transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
@@ -175,39 +175,39 @@ export default function ItemCard({ item, mode }) {
 
             <div
                 data-item-id={item.id}
-                className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
+                className={`bg-white rounded-xl shadow-sm p-3 sm:p-4 flex items-center justify-between gap-3 group animate-pop transition-transform duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
                 style={{ transform: `translateX(${dragOffset}px)`, touchAction: 'pan-y' }}
             >
-            <div className="flex-1 flex items-center gap-2">
-                {isEditing ? (
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onBlur={saveEdit}
-                        onKeyDown={handleKeyDown}
-                        className="flex-1 font-medium text-lg text-gray-800 border-b-2 border-brand-500 outline-none bg-transparent"
-                    />
-                ) : (
-                    <>
-                        <h3 className="font-medium text-lg text-gray-800">{item.name}</h3>
-                        <button
-                            onClick={startEditing}
-                            className="p-1 hover:bg-gray-100 rounded transition-opacity"
-                            title="Rename"
-                        >
-                            <Pencil size={16} className="text-gray-400" />
-                        </button>
-                    </>
-                )}
-            </div>
+                <div className="flex-1 flex items-center gap-2">
+                    {isEditing ? (
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onBlur={saveEdit}
+                            onKeyDown={handleKeyDown}
+                            className="flex-1 font-medium text-base sm:text-lg text-gray-800 border-b-2 border-brand-500 outline-none bg-transparent"
+                        />
+                    ) : (
+                        <>
+                            <h3 className="font-medium text-base sm:text-lg text-gray-800 leading-snug">{item.name}</h3>
+                            <button
+                                onClick={startEditing}
+                                className="p-1 hover:bg-gray-100 rounded transition-opacity"
+                                title="Rename"
+                            >
+                                <Pencil size={16} className="text-gray-400" />
+                            </button>
+                        </>
+                    )}
+                </div>
 
                 <div className="flex items-center gap-2">
                     {mode === 'shop' && (
                         <button
                             onClick={handleBuy}
-                            className="w-10 h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center hover:bg-brand-500 hover:text-white transition-colors active:scale-90"
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center hover:bg-brand-500 hover:text-white transition-colors active:scale-90"
                             title="Mark Bought"
                         >
                             <Check size={20} />
@@ -217,7 +217,7 @@ export default function ItemCard({ item, mode }) {
                     {mode === 'stock' && (
                         <button
                             onClick={handleAddToShop}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors active:scale-90 ${item.isOnShoppingList
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors active:scale-90 ${item.isOnShoppingList
                                 ? 'bg-brand-500 text-white hover:bg-brand-600'
                                 : 'bg-gray-100 text-gray-600 hover:bg-brand-500 hover:text-white'
                                 }`}

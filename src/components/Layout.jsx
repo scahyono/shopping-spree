@@ -87,7 +87,7 @@ export default function Layout({ children }) {
 
             {/* Main Content Area - Scrollable */}
             <main
-                className={`flex-1 overflow-y-auto pb-24 relative p-4 space-y-4 ${swipeAnimationClass}`}
+                className={`flex-1 overflow-y-auto pb-24 relative p-3 sm:p-4 space-y-3 sm:space-y-4 ${swipeAnimationClass}`}
                 onPointerDown={handlePointerDown}
                 onPointerUp={handlePointerUp}
                 onTouchStart={handleTouchStart}
