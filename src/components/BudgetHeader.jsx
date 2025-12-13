@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
@@ -7,6 +7,29 @@ import buildInfo from '../buildInfo.json';
 export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
+    const categories = ['income', 'needs', 'future', 'wants'];
+
+    const formatValue = (value) => {
+        if (value === 0) return '0';
+        if (!value || Number.isNaN(value)) return '';
+        return String(value);
+    };
+
+    const buildDrafts = (sourceBudget) => {
+        return categories.reduce((acc, cat) => {
+            acc[cat] = {
+                target: formatValue(sourceBudget?.[cat]?.target),
+                actual: formatValue(sourceBudget?.[cat]?.actual)
+            };
+            return acc;
+        }, {});
+    };
+
+    const [budgetDrafts, setBudgetDrafts] = useState(() => buildDrafts(budget));
+
+    useEffect(() => {
+        setBudgetDrafts(buildDrafts(budget));
+    }, [budget]);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
     const buildStamp = useMemo(() => {
@@ -22,6 +45,28 @@ export default function BudgetHeader() {
 
     const remaining = computed.weeklyWantsRemaining;
     const isNegative = remaining < 0;
+
+    const updateDraft = (cat, field, value) => {
+        setBudgetDrafts(prev => ({
+            ...prev,
+            [cat]: {
+                ...prev[cat],
+                [field]: value
+            }
+        }));
+    };
+
+    const commitBudgetValue = (cat, field) => {
+        const value = budgetDrafts?.[cat]?.[field];
+        actions.updateBudget(cat, field, value);
+    };
+
+    const handleKeyDown = (event, cat, field) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            commitBudgetValue(cat, field);
+        }
+    };
 
     return (
         <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
@@ -80,10 +125,13 @@ export default function BudgetHeader() {
                                     <div>
                                         <div className="text-xs opacity-60">Target</div>
                                         <input
-                                            type="number"
-                                            className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'wants' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={budget[cat].target}
-                                            onChange={(e) => actions.updateBudget(cat, 'target', e.target.value)}
+                                            type="text"
+                                            inputMode="decimal"
+                                            className={`w-24 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'wants' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            value={budgetDrafts[cat]?.target ?? ''}
+                                            onChange={(e) => updateDraft(cat, 'target', e.target.value)}
+                                            onBlur={() => commitBudgetValue(cat, 'target')}
+                                            onKeyDown={(event) => handleKeyDown(event, cat, 'target')}
                                             onClick={(e) => e.stopPropagation()}
                                             disabled={cat === 'wants'}
                                         />
@@ -91,10 +139,13 @@ export default function BudgetHeader() {
                                     <div className="border-l border-brand-500 pl-4">
                                         <div className="text-xs opacity-60">Actual</div>
                                         <input
-                                            type="number"
-                                            className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'income' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={budget[cat].actual}
-                                            onChange={(e) => actions.updateBudget(cat, 'actual', e.target.value)}
+                                            type="text"
+                                            inputMode="decimal"
+                                            className={`w-24 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'income' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            value={budgetDrafts[cat]?.actual ?? ''}
+                                            onChange={(e) => updateDraft(cat, 'actual', e.target.value)}
+                                            onBlur={() => commitBudgetValue(cat, 'actual')}
+                                            onKeyDown={(event) => handleKeyDown(event, cat, 'actual')}
                                             onClick={(e) => e.stopPropagation()}
                                             disabled={cat === 'income'}
                                         />
