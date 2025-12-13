@@ -16,6 +16,7 @@ let firebaseApp = null;
 let auth = null;
 let database = null;
 const listeners = [];
+const BUILD_INFO_PATH = 'buildInfo';
 
 function initializeFirebase() {
     if (!firebaseApp) {
@@ -57,7 +58,7 @@ export async function signInWithGoogle() {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    const isWhitelisted = await checkWhitelist(user.uid);
+    const isWhitelisted = await isUserWhitelisted(user.uid);
     if (!isWhitelisted) {
         await addToWaitingList(user);
         await firebaseSignOut(auth);
@@ -72,7 +73,7 @@ export async function signInWithGoogle() {
     return user;
 }
 
-async function checkWhitelist(uid) {
+export async function isUserWhitelisted(uid) {
     const { database } = initializeFirebase();
     const whitelistRef = ref(database, `whitelist/${uid}`);
     const snapshot = await get(whitelistRef);
@@ -114,6 +115,16 @@ export async function loadFamilyData() {
     }
 
     return data;
+}
+
+export async function loadBuildInfoFromDatabase() {
+    const { database } = initializeFirebase();
+    const buildInfoRef = ref(database, BUILD_INFO_PATH);
+    const snapshot = await get(buildInfoRef);
+
+    if (!snapshot.exists()) return null;
+
+    return snapshot.val();
 }
 
 // Granular update for a single budget field
@@ -189,14 +200,24 @@ export async function saveFamilyItems(items) {
     });
 }
 
+export async function saveBuildInfo(buildInfo) {
+    const { database, auth } = initializeFirebase();
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    await update(ref(database, BUILD_INFO_PATH), {
+        ...buildInfo,
+        lastUpdatedAt: new Date().toISOString(),
+        lastUpdatedBy: user.email
+    });
+}
+
 export function listenToFamilyBudget(callback) {
     const { database } = initializeFirebase();
     const budgetRef = ref(database, 'family/shared/budget');
 
     const handler = (snapshot) => {
-        if (snapshot.exists()) {
-            callback(snapshot.val());
-        }
+        callback(snapshot.exists() ? snapshot.val() : null);
     };
 
     onValue(budgetRef, handler);
@@ -222,6 +243,20 @@ export function listenToFamilyItems(callback) {
     listeners.push({ ref: itemsRef, handler });
 
     return () => off(itemsRef, 'value', handler);
+}
+
+export function listenToBuildInfo(callback) {
+    const { database } = initializeFirebase();
+    const buildInfoRef = ref(database, BUILD_INFO_PATH);
+
+    const handler = (snapshot) => {
+        callback(snapshot.exists() ? snapshot.val() : null);
+    };
+
+    onValue(buildInfoRef, handler);
+    listeners.push({ ref: buildInfoRef, handler });
+
+    return () => off(buildInfoRef, 'value', handler);
 }
 
 export function stopListening() {

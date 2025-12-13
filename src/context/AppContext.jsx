@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState, useMemo, useRef } from 
 import { StorageService } from '../services/storage';
 import { countSaturdays, getCurrentWeekNumber } from '../utils/dateHelpers';
 import { calculateIncomeActual, calculateWantsTarget, calculateWeeklyRemaining } from '../utils/budgetCalculations';
-import { onAuthChange, updateBudgetField, updateItem as firebaseUpdateItem } from '../services/firebase';
+import { loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
+import buildInfo from '../buildInfo.json';
 
 const AppContext = createContext();
 
@@ -41,6 +42,7 @@ export function AppProvider({ children }) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
+    const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
     const isFirebaseUpdateRef = useRef(false); // Use ref for synchronous flag
 
     // Initial Load
@@ -73,6 +75,19 @@ export function AppProvider({ children }) {
         });
 
         return () => unsubscribe?.();
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+
+        const handleOnlineChange = () => setIsOnline(navigator.onLine);
+        window.addEventListener('online', handleOnlineChange);
+        window.addEventListener('offline', handleOnlineChange);
+
+        return () => {
+            window.removeEventListener('online', handleOnlineChange);
+            window.removeEventListener('offline', handleOnlineChange);
+        };
     }, []);
 
     // Persist on Changes (but NOT when update comes from Firebase)
@@ -129,6 +144,35 @@ export function AppProvider({ children }) {
             cleanup?.();
         };
     }, [loading, currentUser]);
+
+    useEffect(() => {
+        if (loading || !currentUser || !isOnline) return;
+
+        const syncBuildInfoIfNeeded = async () => {
+            try {
+                const whitelisted = await isUserWhitelisted(currentUser.uid);
+                if (!whitelisted) return;
+
+                const remoteInfo = await loadBuildInfoFromDatabase();
+                const remoteBuildNumber = Number(remoteInfo?.buildNumber);
+                const localBuildNumber = Number(buildInfo.buildNumber);
+
+                const shouldUpdateRemote = Number.isFinite(localBuildNumber)
+                    && (!Number.isFinite(remoteBuildNumber) || remoteBuildNumber < localBuildNumber);
+
+                if (shouldUpdateRemote) {
+                    await saveBuildInfo({
+                        buildNumber: localBuildNumber,
+                        builtAt: buildInfo.builtAt,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to sync build info to database', error);
+            }
+        };
+
+        syncBuildInfoIfNeeded();
+    }, [loading, currentUser, isOnline]);
 
     // === ACTIONS ===
 
@@ -292,10 +336,14 @@ export function AppProvider({ children }) {
         }));
     };
 
-    const hideItem = (id) => {
+    const hideItem = (id, source = 'both') => {
         setItems(prev => prev.map(item => {
             if (item.id !== id) return item;
-            const updatedItem = { ...item, isInStock: false, isOnShoppingList: false };
+            const updatedItem = {
+                ...item,
+                isInStock: source === 'shop' ? item.isInStock : false,
+                isOnShoppingList: source === 'stock' ? item.isOnShoppingList : false
+            };
 
             // Sync to Firebase granularly
             if (currentUser) {
