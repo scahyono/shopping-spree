@@ -16,9 +16,25 @@ export default function BudgetHeader() {
         && remoteBuildNumber > localBuildNumber;
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
-    const handleUpgrade = () => {
-        localStorage.clear();
-        window.location.reload();
+    const handleUpgrade = async () => {
+        try {
+            localStorage.clear();
+
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map((registration) => registration.unregister()));
+            }
+
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map((key) => caches.delete(key)));
+            }
+
+            window.location.href = `${window.location.pathname}?t=${Date.now()}`;
+        } catch (error) {
+            console.error('Manual reset failed:', error);
+            window.location.reload();
+        }
     };
     const formatBuildTimestamp = (timestamp) => {
         if (!timestamp) return '—';
