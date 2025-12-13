@@ -9,7 +9,17 @@ export default function BudgetHeader() {
     const [expanded, setExpanded] = useState(false);
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
 
+    const localBuildNumber = Number(buildInfo.buildNumber);
+    const remoteBuildNumber = Number(remoteBuildInfo?.buildNumber);
+    const upgradeAvailable = Number.isFinite(localBuildNumber)
+        && Number.isFinite(remoteBuildNumber)
+        && remoteBuildNumber > localBuildNumber;
+
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
+    const handleUpgrade = () => {
+        localStorage.clear();
+        window.location.reload();
+    };
     const formatBuildTimestamp = (timestamp) => {
         if (!timestamp) return '—';
         try {
@@ -127,6 +137,15 @@ export default function BudgetHeader() {
                                 <span>Build #{buildInfo.buildNumber ?? '—'}</span>
                                 <span className="text-white/40">/</span>
                                 <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
+                                {upgradeAvailable && (
+                                    <button
+                                        type="button"
+                                        onClick={handleUpgrade}
+                                        className="ml-1 px-2 py-1 text-[11px] font-semibold bg-white/10 hover:bg-white/20 active:bg-white/25 rounded transition-colors"
+                                    >
+                                        Upgrade
+                                    </button>
+                                )}
                                 {remoteBuildInfo?.builtAt ? (
                                     <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
                                 ) : (
