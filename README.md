@@ -116,12 +116,13 @@ Example `whitelist` structure:
     "family": {
       "shared": {
         ".read": "auth != null && root.child('whitelist').child(auth.uid).exists()",
-        ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()",
-        "buildInfo": {
-        ".read": "auth != null && root.child('whitelist').child(auth.uid).exists()",
-        ".write": "auth != null && auth.uid === 'f1Csbq9tI1gqg0mZ7IVSiVFpTWx1'",
-        ".validate": "newData.hasChildren(['buildNumber', 'builtAt'])"
+        ".write": "auth != null && root.child('whitelist').child(auth.uid).exists()"
       }
+    },
+    "buildInfo": {
+      ".read": "true",
+      ".write": "auth != null && auth.uid === 'f1Csbq9tI1gqg0mZ7IVSiVFpTWx1'",
+      ".validate": "newData.hasChildren(['buildNumber', 'builtAt'])"
     }
   }
 }
@@ -129,9 +130,9 @@ Example `whitelist` structure:
 ```
 
 #### 4.5 Build metadata sync
-The deploy script bumps the build number and writes the updated metadata into `family/shared/buildInfo` in the Realtime Database using a least-privilege build bot baked into the script.
+The deploy script bumps the build number and writes the updated metadata into the top-level `buildInfo` node in the Realtime Database using a least-privilege build bot baked into the script.
 
-Only the `family/shared/buildInfo` node is touched; security rules should continue to restrict writes to the dedicated writer UID shown in the rules above. No environment variables are required to sync build metadata—the deploy uses the embedded credentials automatically and will surface an error in CI if the build writer is missing or blocked by rules.
+Only the `buildInfo` node is touched; security rules should continue to restrict writes to the dedicated writer UID shown in the rules above, while reads remain open for visibility. No environment variables are required to sync build metadata—the deploy uses the embedded credentials automatically and will surface an error in CI if the build writer is missing or blocked by rules.
 
 #### 4. Sign In and Sync
 1. Click **Sign In with Google** in the app header

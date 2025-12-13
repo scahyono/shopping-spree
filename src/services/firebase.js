@@ -16,7 +16,7 @@ let firebaseApp = null;
 let auth = null;
 let database = null;
 const listeners = [];
-const BUILD_INFO_PATH = 'family/shared/buildInfo';
+const BUILD_INFO_PATH = 'buildInfo';
 
 function initializeFirebase() {
     if (!firebaseApp) {

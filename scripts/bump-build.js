@@ -3,7 +3,7 @@ import path from 'path';
 
 const filePath = path.join(process.cwd(), 'src', 'buildInfo.json');
 const databaseURL = 'https://shopping-spree-94c4d-default-rtdb.europe-west1.firebasedatabase.app';
-const buildInfoPath = 'family/shared/buildInfo';
+const buildInfoPath = 'buildInfo';
 const firebaseApiKey = 'AIzaSyDks3_CoJfEpj2bqTCGeQZhGibXgY9n9l8';
 const buildBotUid = 'f1Csbq9tI1gqg0mZ7IVSiVFpTWx1';
 const buildBotEmail = 'builtbot@shopping-spree.bot';

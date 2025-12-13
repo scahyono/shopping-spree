@@ -26,11 +26,6 @@ export default function BudgetHeader() {
     useEffect(() => {
         let unsubscribe;
 
-        if (!currentUser) {
-            setRemoteBuildInfo(null);
-            return undefined;
-        }
-
         import('../services/firebase')
             .then(({ listenToBuildInfo }) => {
                 unsubscribe = listenToBuildInfo((info) => setRemoteBuildInfo(info));
@@ -40,7 +35,7 @@ export default function BudgetHeader() {
             });
 
         return () => unsubscribe?.();
-    }, [currentUser]);
+    }, []);
 
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
 
