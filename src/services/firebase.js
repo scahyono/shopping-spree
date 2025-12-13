@@ -58,7 +58,7 @@ export async function signInWithGoogle() {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    const isWhitelisted = await checkWhitelist(user.uid);
+    const isWhitelisted = await isUserWhitelisted(user.uid);
     if (!isWhitelisted) {
         await addToWaitingList(user);
         await firebaseSignOut(auth);
@@ -73,7 +73,7 @@ export async function signInWithGoogle() {
     return user;
 }
 
-async function checkWhitelist(uid) {
+export async function isUserWhitelisted(uid) {
     const { database } = initializeFirebase();
     const whitelistRef = ref(database, `whitelist/${uid}`);
     const snapshot = await get(whitelistRef);

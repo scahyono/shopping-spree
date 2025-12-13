@@ -4,5 +4,5 @@
 - **DO NOT TOUCH THE MAIN BRANCH**. Work on feature branches and do not merge to main.
 - Always run unit tests.
 - Always increase the build number during deploy.
-- When bumping the build number, also write the build metadata to the Firebase database using the embedded least-privilege credentials (no environment overrides needed).
+- Build metadata is written from the PWA after sign-in; the bump script only updates the local manifest.
 - Always deploy at the end of the task.
