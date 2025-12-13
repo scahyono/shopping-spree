@@ -13,7 +13,10 @@ export default function BudgetHeader() {
     const formatBuildTimestamp = (timestamp) => {
         if (!timestamp) return '—';
         try {
-            return new Date(timestamp).toLocaleString();
+            const date = new Date(timestamp);
+            const pad = (value) => value.toString().padStart(2, '0');
+
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
         } catch {
             return timestamp;
         }
@@ -119,16 +122,14 @@ export default function BudgetHeader() {
                                 </div>
                             </div>
                         ))}
-                        <div className="mt-4 pt-4 border-t border-brand-500/60 text-[11px] uppercase tracking-wide text-brand-100 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                            <span className="font-semibold">Build metadata</span>
-                            <div className="text-sm font-semibold text-white flex flex-wrap items-center gap-2">
-                                <span>Local #{buildInfo.buildNumber ?? '—'}</span>
+                        <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">
+                            <div className="text-sm font-semibold text-white flex flex-wrap items-center gap-2 text-right">
+                                <span>Build #{buildInfo.buildNumber ?? '—'}</span>
                                 <span className="text-white/40">/</span>
-                                <span>Database #{remoteBuildInfo?.buildNumber ?? '—'}</span>
-                                {remoteBuildInfo?.builtAt && (
-                                    <span className="text-[11px] font-medium text-white/60">(updated {formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
-                                )}
-                                {!remoteBuildInfo && (
+                                <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
+                                {remoteBuildInfo?.builtAt ? (
+                                    <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
+                                ) : (
                                     <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
                                 )}
                             </div>
