@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
 import buildInfo from '../buildInfo.json';
+import { formatCurrency, parseCurrencyInput } from '../utils/currency';
 
 export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
@@ -113,10 +114,7 @@ export default function BudgetHeader() {
         }, 0);
     };
 
-    const parsePendingValue = () => {
-        const amount = parseFloat(pendingValue);
-        return Number.isFinite(amount) ? amount : 0;
-    };
+    const parsePendingValue = () => parseCurrencyInput(pendingValue);
 
     const applyBudgetAction = (actionType) => {
         if (!activeBudgetField) return;
@@ -159,6 +157,7 @@ export default function BudgetHeader() {
 
     const remaining = computed.weeklyWantsRemaining;
     const isNegative = remaining < 0;
+    const formattedRemaining = formatCurrency(remaining);
 
     return (
         <>
@@ -180,7 +179,7 @@ export default function BudgetHeader() {
                         className="justify-self-center flex flex-col items-center justify-center gap-1 text-center cursor-pointer active:opacity-90 transition-opacity"
                     >
                         <div className={`text-3xl font-bold tracking-tight transition-colors duration-300 ${isNegative ? 'text-red-200' : 'text-white'}`}>
-                            {Math.floor(remaining)}
+                            {formattedRemaining}
                         </div>
 
                         <div className="flex justify-center -mt-1 opacity-50">
@@ -217,13 +216,13 @@ export default function BudgetHeader() {
                                             ref={(el) => { inputRefs.current[getFieldKey(cat, 'target')] = el; }}
                                             type="number"
                                             className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'wants' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={isFieldActive(cat, 'target') ? pendingValue : budget[cat].target}
+                                            value={isFieldActive(cat, 'target') ? pendingValue : formatCurrency(budget[cat].target)}
                                             onChange={(e) => handleInputChange(cat, 'target', e.target.value)}
                                             onFocus={() => handleInputFocus(cat, 'target')}
                                             onBlur={handleInputBlur}
                                             onClick={(e) => e.stopPropagation()}
                                             disabled={cat === 'wants'}
-                                            placeholder={String(budget[cat].target)}
+                                            placeholder={formatCurrency(budget[cat].target)}
                                         />
                                     </div>
                                     <div className="border-l border-brand-500 pl-4">
@@ -232,19 +231,19 @@ export default function BudgetHeader() {
                                             ref={(el) => { inputRefs.current[getFieldKey(cat, 'actual')] = el; }}
                                             type="number"
                                             className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'income' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={isFieldActive(cat, 'actual') ? pendingValue : budget[cat].actual}
+                                            value={isFieldActive(cat, 'actual') ? pendingValue : formatCurrency(budget[cat].actual)}
                                             onChange={(e) => handleInputChange(cat, 'actual', e.target.value)}
                                             onFocus={() => handleInputFocus(cat, 'actual')}
                                             onBlur={handleInputBlur}
                                             onClick={(e) => e.stopPropagation()}
                                             disabled={cat === 'income'}
-                                            placeholder={String(budget[cat].actual)}
+                                            placeholder={formatCurrency(budget[cat].actual)}
                                         />
                                     </div>
                                     <div className="border-l border-brand-500 pl-4">
                                         <div className="text-xs opacity-60">Remaining</div>
                                         <div className={`w-20 text-right font-medium ${budget[cat].target - budget[cat].actual < 0 ? 'text-red-300' : 'text-white'}`}>
-                                            {budget[cat].target - budget[cat].actual}
+                                            {formatCurrency(budget[cat].target - budget[cat].actual)}
                                         </div>
                                     </div>
                                 </div>
@@ -295,7 +294,7 @@ export default function BudgetHeader() {
                             <span>
                                 {activeBudgetField.category} — {activeBudgetField.field}
                             </span>
-                            <span className="text-gray-700">{budget?.[activeBudgetField.category]?.[activeBudgetField.field] ?? 0}</span>
+                            <span className="text-gray-700">{formatCurrency(budget?.[activeBudgetField.category]?.[activeBudgetField.field] ?? 0)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <button
