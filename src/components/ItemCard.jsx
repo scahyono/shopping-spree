@@ -9,8 +9,10 @@ export default function ItemCard({ item, mode }) {
     const [editName, setEditName] = useState(item.name);
     const inputRef = useRef(null);
     const lastPointerRef = useRef({ x: 0, y: 0 });
-    const longPressTimerRef = useRef(null);
-    const pressStartRef = useRef(null);
+    const dragStartRef = useRef(null);
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
@@ -75,66 +77,70 @@ export default function ItemCard({ item, mode }) {
         }
     };
 
-    const clearLongPress = () => {
-        if (longPressTimerRef.current) {
-            clearTimeout(longPressTimerRef.current);
-            longPressTimerRef.current = null;
-        }
+    const getActiveAction = (offset) => {
+        if (Math.abs(offset) < 10) return null;
+
+        return offset < 0 ? 'hide' : null;
     };
 
-    const startLongPress = (point) => {
-        if (isEditing) return;
-        pressStartRef.current = point;
+    const resetDrag = () => {
+        setDragOffset(0);
+        setIsDragging(false);
+        dragStartRef.current = null;
+    };
+
+    const startDrag = (point, source) => {
+        dragStartRef.current = { ...point, source };
         lastPointerRef.current = point;
-
-        clearLongPress();
-        longPressTimerRef.current = setTimeout(() => {
-            actions.hideItem(item.id, mode);
-        }, 600);
+        setIsDragging(true);
     };
 
-    const cancelLongPressOnMove = (point) => {
-        if (!pressStartRef.current) return;
-        const dx = Math.abs(point.x - pressStartRef.current.x);
-        const dy = Math.abs(point.y - pressStartRef.current.y);
+    const updateDrag = (point, source) => {
+        if (!isDragging || !dragStartRef.current || dragStartRef.current.source !== source || isConfirming) return;
+        lastPointerRef.current = point;
+        const deltaX = point.x - dragStartRef.current.x;
+        setDragOffset(Math.min(deltaX, 0));
+    };
 
-        if (dx > 10 || dy > 10) {
-            clearLongPress();
+    const endDrag = (source) => {
+        if (!isDragging || dragStartRef.current?.source !== source || isConfirming) return;
+        const action = Math.abs(dragOffset) > 80 ? getActiveAction(dragOffset) : null;
+
+        if (action === 'hide') {
+            setIsConfirming(true);
         }
-    };
 
-    const endLongPress = () => {
-        clearLongPress();
-        pressStartRef.current = null;
+        resetDrag();
     };
 
     const handlePointerDown = (e) => {
+        if (isConfirming) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (dragStartRef.current?.source === 'touch') return;
         if (e.target.closest('button')) return;
         e.stopPropagation();
-        startLongPress({ x: e.clientX, y: e.clientY });
+        startDrag({ x: e.clientX, y: e.clientY }, 'pointer');
     };
 
     const handlePointerMove = (e) => {
-        e.stopPropagation();
-        cancelLongPressOnMove({ x: e.clientX, y: e.clientY });
+        updateDrag({ x: e.clientX, y: e.clientY }, 'pointer');
     };
 
-    const handlePointerEnd = () => {
-        endLongPress();
+    const handlePointerEnd = (e) => {
+        e.stopPropagation();
+        endDrag('pointer');
     };
 
     const handleTouchStart = (e) => {
-        if (!e.touches?.length) return;
+        if (!e.touches?.length || isConfirming) return;
         if (e.target.closest('button')) return;
         e.stopPropagation();
-        startLongPress({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+        startDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
     };
 
     const handleTouchMove = (e) => {
         if (!e.touches?.length) return;
-        e.stopPropagation();
-        cancelLongPressOnMove({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+        updateDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
     };
 
     const handleTouchEnd = (e) => {
@@ -144,24 +150,47 @@ export default function ItemCard({ item, mode }) {
             x: e.changedTouches[0].clientX,
             y: e.changedTouches[0].clientY
         };
-        endLongPress();
+        endDrag('touch');
     };
 
+    const handleHideConfirm = () => {
+        actions.hideItem(item.id, mode);
+        setIsConfirming(false);
+    };
+
+    const handleDeleteConfirm = () => {
+        actions.deleteItem(item.id);
+        setIsConfirming(false);
+    };
+
+    const cancelConfirm = () => setIsConfirming(false);
+
+    const activeAction = getActiveAction(dragOffset);
+    const leftActionLabel = 'Swipe left to hide or delete';
+    const leftBg = 'bg-red-50';
+
     return (
-        <div
-            className="relative"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerEnd}
-            onPointerCancel={handlePointerEnd}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-        >
+        <div className="relative">
+            <div
+                className={`absolute inset-0 rounded-xl px-4 flex items-center justify-end select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : 'bg-gray-50'}`}
+                style={{ touchAction: 'pan-y' }}
+            >
+                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap text-red-500 text-right transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
+                    {leftActionLabel}
+                </span>
+            </div>
+
             <div
                 data-item-id={item.id}
-                className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 cursor-pointer"
-                style={{ touchAction: 'pan-y' }}
+                className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
+                style={{ transform: `translateX(${dragOffset}px)`, touchAction: 'pan-y' }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerEnd}
+                onPointerCancel={handlePointerEnd}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
                 <div className="flex-1 flex items-center gap-2">
                 {isEditing ? (
@@ -213,6 +242,40 @@ export default function ItemCard({ item, mode }) {
                     )}
                 </div>
             </div>
+
+            {isConfirming && (
+                <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 space-y-3">
+                        <div className="space-y-1">
+                            <h3 className="text-lg font-semibold text-gray-800">Hide or delete this item?</h3>
+                            <p className="text-sm text-gray-600">Choose whether to temporarily hide it from the list or delete it permanently.</p>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={cancelConfirm}
+                                className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleHideConfirm}
+                                className="px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100"
+                            >
+                                Hide
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDeleteConfirm}
+                                className="px-3 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, useRef } from 
 import { StorageService } from '../services/storage';
 import { countSaturdays, getCurrentWeekNumber } from '../utils/dateHelpers';
 import { calculateIncomeActual, calculateWantsTarget, calculateWeeklyRemaining } from '../utils/budgetCalculations';
-import { loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
+import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
 import buildInfo from '../buildInfo.json';
 import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents } from '../utils/currency';
 
@@ -346,6 +346,14 @@ export function AppProvider({ children }) {
         }));
     };
 
+    const deleteItem = (id) => {
+        setItems(prev => prev.filter(item => item.id !== id));
+
+        if (currentUser) {
+            firebaseDeleteItem(id).catch(console.error);
+        }
+    };
+
     // === DERIVED STATE ===
 
     const weeklyWantsRemaining = useMemo(() => {
@@ -379,7 +387,8 @@ export function AppProvider({ children }) {
             toggleShop,
             markBought,
             renameItem,
-            hideItem
+            hideItem,
+            deleteItem
         },
         computed: {
             weeklyWantsRemaining: weeklyWantsRemaining?.remaining || 0,
