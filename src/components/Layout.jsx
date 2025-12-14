@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Box } from 'lucide-react';
 import BudgetHeader from './BudgetHeader';
+import FocusCelebration from './FocusCelebration';
+import { evaluateFocusReward, markSessionStart } from '../utils/focusReward';
 
 export default function Layout({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
     const touchStartRef = useRef(null);
     const animationTimerRef = useRef(null);
+    const [focusCelebration, setFocusCelebration] = useState(null);
     const [swipeDirection, setSwipeDirection] = useState(null);
 
     const isActive = (path) => location.pathname === path;
@@ -73,6 +76,32 @@ export default function Layout({ children }) {
         }
     }, []);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+
+        const now = Date.now();
+        const reward = evaluateFocusReward(now);
+
+        if (reward.shouldCelebrate) {
+            setFocusCelebration({ rank: reward.focusRank });
+        }
+
+        markSessionStart(now);
+
+        return undefined;
+    }, []);
+
+    useEffect(() => {
+        if (!focusCelebration) return undefined;
+
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, [focusCelebration]);
+
     const swipeAnimationClass =
         swipeDirection === 'left'
             ? 'swipe-slide-left'
@@ -116,6 +145,10 @@ export default function Layout({ children }) {
                     </Link>
                 </div>
             </footer>
+
+            {focusCelebration ? (
+                <FocusCelebration rank={focusCelebration.rank} onDismiss={() => setFocusCelebration(null)} />
+            ) : null}
         </div>
     );
 }
