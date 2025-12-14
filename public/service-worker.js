@@ -1,4 +1,6 @@
-const CACHE_NAME = 'shopping-spree-cache-v1';
+const swUrl = new URL(self.location.href);
+const buildVersion = swUrl.searchParams.get('build') || 'v1';
+const CACHE_NAME = `shopping-spree-cache-${buildVersion}`;
 const BASE_PATH = new URL(self.registration.scope).pathname;
 const PRECACHE_URLS = [
   `${BASE_PATH}`,
@@ -8,14 +10,26 @@ const PRECACHE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
