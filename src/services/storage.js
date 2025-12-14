@@ -1,15 +1,9 @@
 import { getCurrentUser, loadFamilyData, saveFamilyBudget, saveFamilyItems } from './firebase';
+import { createDefaultBudget, normalizeBudgetToCents } from '../utils/currency';
 
 const STORAGE_KEYS = {
     BUDGET: 'shopping_spree_budget',
     ITEMS: 'shopping_spree_items'
-};
-
-const DEFAULT_BUDGET = {
-    income: { target: 0, actual: 0 },
-    needs: { target: 0, actual: 0 },
-    future: { target: 0, actual: 0 },
-    wants: { target: 0, actual: 0 }
 };
 
 // Local Storage Helpers
@@ -62,16 +56,27 @@ export const StorageService = {
     // === BUDGET ===
     getBudget: async () => {
         // Always read from localStorage first (offline-first)
-        const localBudget = getLocal(STORAGE_KEYS.BUDGET, DEFAULT_BUDGET);
+        const localBudgetRaw = getLocal(STORAGE_KEYS.BUDGET, createDefaultBudget());
+        const { budget: localBudget, migrated: localMigrated } = normalizeBudgetToCents(localBudgetRaw);
+
+        if (localMigrated) {
+            setLocal(STORAGE_KEYS.BUDGET, localBudget);
+        }
 
         // If Firebase is enabled, try to load from cloud (but don't block)
         if (isFirebaseEnabled()) {
             try {
                 const familyData = await loadFamilyData();
                 if (familyData && familyData.budget) {
+                    const { budget: normalizedBudget, migrated } = normalizeBudgetToCents(familyData.budget);
                     // Merge cloud data with local (cloud wins)
-                    setLocal(STORAGE_KEYS.BUDGET, familyData.budget);
-                    return familyData.budget;
+                    setLocal(STORAGE_KEYS.BUDGET, normalizedBudget);
+
+                    if (migrated) {
+                        await syncBudgetToFirebase(normalizedBudget);
+                    }
+
+                    return normalizedBudget;
                 }
             } catch (error) {
                 console.error('Firebase load error:', error);
@@ -82,11 +87,13 @@ export const StorageService = {
         return localBudget;
     },
     saveBudget: async (budget) => {
+        const { budget: normalizedBudget } = normalizeBudgetToCents(budget);
+
         // Always save to localStorage first (offline-first)
-        setLocal(STORAGE_KEYS.BUDGET, budget);
+        setLocal(STORAGE_KEYS.BUDGET, normalizedBudget);
 
         // Sync to Firebase if enabled
-        await syncBudgetToFirebase(budget);
+        await syncBudgetToFirebase(normalizedBudget);
     },
 
     // === ITEMS ===

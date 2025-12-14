@@ -2,8 +2,9 @@ import { createContext, useContext, useEffect, useState, useMemo, useRef } from 
 import { StorageService } from '../services/storage';
 import { countSaturdays, getCurrentWeekNumber } from '../utils/dateHelpers';
 import { calculateIncomeActual, calculateWantsTarget, calculateWeeklyRemaining } from '../utils/budgetCalculations';
-import { loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
+import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
 import buildInfo from '../buildInfo.json';
+import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents } from '../utils/currency';
 
 const AppContext = createContext();
 
@@ -15,15 +16,15 @@ const DEMO_ITEMS = [
     { id: 'demo-5', name: 'Ice Cream', isInStock: false, isOnShoppingList: false }, // Hidden
 ];
 
-const DEMO_BUDGET = {
+const DEMO_BUDGET = normalizeBudgetToCents({
     income: { target: 5000, actual: 3100 }, // 1950 + 1000 + 150
     needs: { target: 2000, actual: 1950 },
     future: { target: 1000, actual: 1000 },
     wants: { target: 2000, actual: 150 } // 5000 - 2000 - 1000
-};
+}).budget;
 
 export function AppProvider({ children }) {
-    const [budget, setBudget] = useState(null);
+    const [budget, setBudget] = useState(createDefaultBudget());
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
@@ -102,9 +103,14 @@ export function AppProvider({ children }) {
         import('../services/firebase').then(async ({ listenToFamilyBudget, listenToFamilyItems, stopListening }) => {
             const unsubscribeBudget = listenToFamilyBudget((familyBudget) => {
                 if (!familyBudget) return;
+                const { budget: normalizedBudget, migrated } = normalizeBudgetToCents(familyBudget);
                 isFirebaseUpdateRef.current = true;
-                setBudget(familyBudget);
-                localStorage.setItem('shopping_spree_budget', JSON.stringify(familyBudget));
+                setBudget(normalizedBudget);
+                localStorage.setItem('shopping_spree_budget', JSON.stringify(normalizedBudget));
+
+                if (migrated) {
+                    StorageService.saveBudget(normalizedBudget).catch(console.error);
+                }
             });
 
             const unsubscribeItems = listenToFamilyItems((familyItems) => {
@@ -162,41 +168,44 @@ export function AppProvider({ children }) {
     // === ACTIONS ===
 
     const updateBudget = (category, field, value) => {
-        // Validation: 
+        // Validation:
         // 1. Income Actual is derived (Read-only)
         // 2. Wants Target is derived (Read-only: Income Target - Needs Target - Future Target)
         if (category === 'income' && field === 'actual') return;
         if (category === 'wants' && field === 'target') return;
 
+        const parsedValue = Math.round(Number(value) || 0);
+
         setBudget(prev => {
             const nextBudget = {
                 ...prev,
+                currencyVersion: prev.currencyVersion ?? BUDGET_CURRENCY_VERSION,
                 [category]: {
                     ...prev[category],
-                    [field]: Number(value)
+                    [field]: parsedValue
                 }
             };
 
             // Auto-calculate Income Actual = Sum of other Actuals
             // Get the provisional values for calculations
-            const needsActual = category === 'needs' && field === 'actual' ? Number(value) : nextBudget.needs.actual;
-            const futureActual = category === 'future' && field === 'actual' ? Number(value) : nextBudget.future.actual;
-            const wantsActual = category === 'wants' && field === 'actual' ? Number(value) : nextBudget.wants.actual;
+            const needsActual = category === 'needs' && field === 'actual' ? parsedValue : nextBudget.needs.actual;
+            const futureActual = category === 'future' && field === 'actual' ? parsedValue : nextBudget.future.actual;
+            const wantsActual = category === 'wants' && field === 'actual' ? parsedValue : nextBudget.wants.actual;
 
             nextBudget.income.actual = calculateIncomeActual(needsActual, futureActual, wantsActual);
 
             // Auto-calculate Wants Target = Income Target - Needs Target - Future Target
             // We use the NEW values if they are being updated, otherwise current values
-            const incomeTarget = category === 'income' && field === 'target' ? Number(value) : nextBudget.income.target;
-            const needsTarget = category === 'needs' && field === 'target' ? Number(value) : nextBudget.needs.target;
-            const futureTarget = category === 'future' && field === 'target' ? Number(value) : nextBudget.future.target;
+            const incomeTarget = category === 'income' && field === 'target' ? parsedValue : nextBudget.income.target;
+            const needsTarget = category === 'needs' && field === 'target' ? parsedValue : nextBudget.needs.target;
+            const futureTarget = category === 'future' && field === 'target' ? parsedValue : nextBudget.future.target;
 
             nextBudget.wants.target = calculateWantsTarget(incomeTarget, needsTarget, futureTarget);
 
             // Sync to Firebase granularly if user is authenticated
             if (currentUser) {
                 // Sync the directly updated field
-                updateBudgetField(category, field, Number(value)).catch(console.error);
+                updateBudgetField(category, field, parsedValue).catch(console.error);
 
                 // Sync derived fields
                 if (category === 'needs' || category === 'future' || category === 'wants') {
@@ -337,17 +346,24 @@ export function AppProvider({ children }) {
         }));
     };
 
+    const deleteItem = (id) => {
+        setItems(prev => prev.filter(item => item.id !== id));
+
+        if (currentUser) {
+            firebaseDeleteItem(id).catch(console.error);
+        }
+    };
+
     // === DERIVED STATE ===
 
     const weeklyWantsRemaining = useMemo(() => {
-        if (!budget) return 0;
         const now = new Date();
         const saturdays = countSaturdays(now.getFullYear(), now.getMonth());
         // Avoid division by zero
         const safeSaturdays = saturdays || 1;
 
-        const monthlyTarget = budget.wants.target;
-        const totalSpent = budget.wants.actual;
+        const monthlyTarget = Number(budget?.wants?.target) || 0;
+        const totalSpent = Number(budget?.wants?.actual) || 0;
         const currentWeek = getCurrentWeekNumber(now);
 
         const result = calculateWeeklyRemaining(monthlyTarget, totalSpent, currentWeek, safeSaturdays);
@@ -371,7 +387,8 @@ export function AppProvider({ children }) {
             toggleShop,
             markBought,
             renameItem,
-            hideItem
+            hideItem,
+            deleteItem
         },
         computed: {
             weeklyWantsRemaining: weeklyWantsRemaining?.remaining || 0,

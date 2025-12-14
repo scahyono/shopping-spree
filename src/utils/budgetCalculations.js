@@ -11,11 +11,11 @@ export function calculateWeeklyRemaining(monthlyTarget, totalSpent, currentWeek,
     const safeWeeks = totalWeeks || 1;
 
     // Monthly Target divided by number of Saturdays = Weekly Limit
-    const weeklyLimit = monthlyTarget / safeWeeks;
+    const weeklyLimit = Math.round(monthlyTarget / safeWeeks);
 
     // We accumulate budget for every week that has started.
     // If we are in Week 2, we should have (WeeklyLimit * 2) available total.
-    const cumulativeAllowed = weeklyLimit * currentWeek;
+    const cumulativeAllowed = Math.round((monthlyTarget * currentWeek) / safeWeeks) || weeklyLimit * currentWeek;
 
     return {
         remaining: cumulativeAllowed - totalSpent,

@@ -12,6 +12,7 @@ export default function ItemCard({ item, mode }) {
     const dragStartRef = useRef(null);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
@@ -95,26 +96,28 @@ export default function ItemCard({ item, mode }) {
     };
 
     const updateDrag = (point, source) => {
-        if (!isDragging || !dragStartRef.current || dragStartRef.current.source !== source) return;
+        if (!isDragging || !dragStartRef.current || dragStartRef.current.source !== source || isConfirming) return;
         lastPointerRef.current = point;
         const deltaX = point.x - dragStartRef.current.x;
         setDragOffset(Math.min(deltaX, 0));
     };
 
     const endDrag = (source) => {
-        if (!isDragging || dragStartRef.current?.source !== source) return;
+        if (!isDragging || dragStartRef.current?.source !== source || isConfirming) return;
         const action = Math.abs(dragOffset) > 80 ? getActiveAction(dragOffset) : null;
 
         if (action === 'hide') {
-            actions.hideItem(item.id, mode);
+            setIsConfirming(true);
         }
 
         resetDrag();
     };
 
     const handlePointerDown = (e) => {
+        if (isConfirming) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (dragStartRef.current?.source === 'touch') return;
+        if (e.target.closest('button')) return;
         e.stopPropagation();
         startDrag({ x: e.clientX, y: e.clientY }, 'pointer');
     };
@@ -129,7 +132,8 @@ export default function ItemCard({ item, mode }) {
     };
 
     const handleTouchStart = (e) => {
-        if (!e.touches?.length) return;
+        if (!e.touches?.length || isConfirming) return;
+        if (e.target.closest('button')) return;
         e.stopPropagation();
         startDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
     };
@@ -149,21 +153,24 @@ export default function ItemCard({ item, mode }) {
         endDrag('touch');
     };
 
+    const handleHideConfirm = () => {
+        actions.hideItem(item.id, mode);
+        setIsConfirming(false);
+    };
+
+    const handleDeleteConfirm = () => {
+        actions.deleteItem(item.id);
+        setIsConfirming(false);
+    };
+
+    const cancelConfirm = () => setIsConfirming(false);
+
     const activeAction = getActiveAction(dragOffset);
-    const leftActionLabel = 'Swipe left to hide';
+    const leftActionLabel = 'Swipe left to hide or delete';
     const leftBg = 'bg-red-50';
 
     return (
-        <div
-            className="relative"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerEnd}
-            onPointerCancel={handlePointerEnd}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-        >
+        <div className="relative">
             <div
                 className={`absolute inset-0 rounded-xl px-4 flex items-center justify-end select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : 'bg-gray-50'}`}
                 style={{ touchAction: 'pan-y' }}
@@ -177,8 +184,15 @@ export default function ItemCard({ item, mode }) {
                 data-item-id={item.id}
                 className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
                 style={{ transform: `translateX(${dragOffset}px)`, touchAction: 'pan-y' }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerEnd}
+                onPointerCancel={handlePointerEnd}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
-            <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2">
                 {isEditing ? (
                     <input
                         ref={inputRef}
@@ -228,6 +242,40 @@ export default function ItemCard({ item, mode }) {
                     )}
                 </div>
             </div>
+
+            {isConfirming && (
+                <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 space-y-3">
+                        <div className="space-y-1">
+                            <h3 className="text-lg font-semibold text-gray-800">Hide or delete this item?</h3>
+                            <p className="text-sm text-gray-600">Choose whether to temporarily hide it from the list or delete it permanently.</p>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={cancelConfirm}
+                                className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleHideConfirm}
+                                className="px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100"
+                            >
+                                Hide
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDeleteConfirm}
+                                className="px-3 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
