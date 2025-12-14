@@ -14,6 +14,7 @@ export default function BudgetHeader() {
     const [pendingValue, setPendingValue] = useState('');
     const inputRefs = useRef({});
     const actionBarRef = useRef(null);
+    const [actionBarPosition, setActionBarPosition] = useState({ top: 0, left: 0, width: 0 });
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
     const formatBuildTimestamp = (timestamp) => {
@@ -69,14 +70,34 @@ export default function BudgetHeader() {
     const getFieldKey = (category, field) => `${category}-${field}`;
     const isFieldActive = (category, field) => activeBudgetField?.category === category && activeBudgetField?.field === field;
 
+    const positionActionBar = (category, field) => {
+        const inputEl = inputRefs.current[getFieldKey(category, field)];
+
+        if (!inputEl) return;
+
+        const rect = inputEl.getBoundingClientRect();
+        const viewportLeft = rect.left + window.scrollX;
+        const viewportTop = rect.bottom + window.scrollY;
+        const targetWidth = Math.max(rect.width, 220);
+        const maxLeft = Math.max(0, (window.innerWidth + window.scrollX) - targetWidth - 12);
+
+        setActionBarPosition({
+            left: Math.min(viewportLeft, maxLeft),
+            top: viewportTop + 8,
+            width: targetWidth,
+        });
+    };
+
     const handleInputFocus = (category, field) => {
         setActiveBudgetField({ category, field });
         setPendingValue('');
+        positionActionBar(category, field);
     };
 
     const handleInputChange = (category, field, value) => {
         setActiveBudgetField({ category, field });
         setPendingValue(value);
+        positionActionBar(category, field);
     };
 
     const handleInputBlur = () => {
@@ -115,7 +136,24 @@ export default function BudgetHeader() {
         const inputEl = inputRefs.current[getFieldKey(category, field)];
         inputEl?.focus();
         inputEl?.select();
+        positionActionBar(category, field);
     };
+
+    useEffect(() => {
+        const syncPosition = () => {
+            if (activeBudgetField) {
+                positionActionBar(activeBudgetField.category, activeBudgetField.field);
+            }
+        };
+
+        window.addEventListener('resize', syncPosition);
+        window.addEventListener('scroll', syncPosition, true);
+
+        return () => {
+            window.removeEventListener('resize', syncPosition);
+            window.removeEventListener('scroll', syncPosition, true);
+        };
+    }, [activeBudgetField]);
 
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
 
@@ -242,24 +280,29 @@ export default function BudgetHeader() {
             )}
             </header>
             {activeBudgetField && (
-                <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-4">
+                <div className="fixed inset-0 z-30 pointer-events-none">
                     <div
                         ref={actionBarRef}
-                        className="max-w-xl mx-auto bg-white text-gray-800 rounded-2xl shadow-xl border border-gray-100 p-3"
-                        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+                        className="pointer-events-auto max-w-xs bg-white text-gray-800 rounded-xl shadow-lg border border-gray-100 p-2"
+                        style={{
+                            top: actionBarPosition.top,
+                            left: actionBarPosition.left,
+                            width: actionBarPosition.width || undefined,
+                            position: 'absolute',
+                        }}
                     >
-                        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                        <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">
                             <span>
                                 {activeBudgetField.category} — {activeBudgetField.field}
                             </span>
-                            <span className="text-gray-700">Current: {budget?.[activeBudgetField.category]?.[activeBudgetField.field] ?? 0}</span>
+                            <span className="text-gray-700">{budget?.[activeBudgetField.category]?.[activeBudgetField.field] ?? 0}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                             <button
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => applyBudgetAction('set')}
-                                className="flex-1 py-2 rounded-lg font-semibold text-sm uppercase bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-[0.99] transition"
+                                className="flex-1 py-1.5 rounded-lg font-semibold text-[13px] uppercase bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-[0.99] transition"
                             >
                                 = Set
                             </button>
@@ -267,7 +310,7 @@ export default function BudgetHeader() {
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => applyBudgetAction('add')}
-                                className="flex-1 py-2 rounded-lg font-semibold text-sm uppercase bg-green-100 text-green-800 hover:bg-green-200 active:scale-[0.99] transition"
+                                className="flex-1 py-1.5 rounded-lg font-semibold text-[13px] uppercase bg-green-100 text-green-800 hover:bg-green-200 active:scale-[0.99] transition"
                             >
                                 + Add
                             </button>
@@ -275,12 +318,11 @@ export default function BudgetHeader() {
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => applyBudgetAction('sub')}
-                                className="flex-1 py-2 rounded-lg font-semibold text-sm uppercase bg-red-100 text-red-800 hover:bg-red-200 active:scale-[0.99] transition"
+                                className="flex-1 py-1.5 rounded-lg font-semibold text-[13px] uppercase bg-red-100 text-red-800 hover:bg-red-200 active:scale-[0.99] transition"
                             >
                                 − Sub
                             </button>
                         </div>
-                        <div className="mt-2 text-[11px] text-gray-500">Enter an amount, then choose how to apply it.</div>
                     </div>
                 </div>
             )}
