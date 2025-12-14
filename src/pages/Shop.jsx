@@ -37,8 +37,8 @@ export default function ShopPage() {
     };
 
     return (
-        <div className="space-y-3 sm:space-y-4">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">Shopping List</h2>
+        <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Shopping List</h2>
 
             <SmartOmnibox
                 items={items}
@@ -53,7 +53,7 @@ export default function ShopPage() {
             />
 
             {shopItems.length === 0 && !hasQuery ? (
-                <div className="flex flex-col items-center justify-center py-14 sm:py-20 opacity-50 text-center">
+                <div className="flex flex-col items-center justify-center py-20 opacity-50 text-center">
                     <Ghost size={48} className="mb-4 text-brand-300" />
                     <p>Your list is empty!</p>
                     <p className="text-sm">Check Stock to add items.</p>
@@ -64,7 +64,7 @@ export default function ShopPage() {
                         {sortedMatches.length === 0 ? (
                             <p className="text-sm text-gray-500">No matches found. Press Enter to add &quot;{query.trim()}&quot;.</p>
                         ) : (
-                            <div className="space-y-2.5 sm:space-y-3">
+                            <div className="space-y-3">
                                 {visibleAddableMatches.length > 0 && (
                                     <div className="space-y-2">
                                         <p className="text-xs uppercase tracking-wide text-gray-500">Available to add</p>
