@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
@@ -7,8 +7,61 @@ import buildInfo from '../buildInfo.json';
 export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
+    const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
+    const [cacheStatus, setCacheStatus] = useState('');
+    const [isClearingCache, setIsClearingCache] = useState(false);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
+    const formatBuildTimestamp = (timestamp) => {
+        if (!timestamp) return '—';
+        try {
+            const date = new Date(timestamp);
+            const pad = (value) => value.toString().padStart(2, '0');
+
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        } catch {
+            return timestamp;
+        }
+    };
+
+    useEffect(() => {
+        let unsubscribe;
+
+        import('../services/firebase')
+            .then(({ listenToBuildInfo }) => {
+                unsubscribe = listenToBuildInfo((info) => setRemoteBuildInfo(info));
+            })
+            .catch((error) => {
+                console.error('Build info listener error:', error);
+            });
+
+        return () => unsubscribe?.();
+    }, []);
+
+    const handleClearCache = async () => {
+        setCacheStatus('');
+        setIsClearingCache(true);
+
+        try {
+            if ('caches' in window) {
+                const cacheKeys = await caches.keys();
+                await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+            }
+
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map((registration) => registration.unregister()));
+            }
+
+            setCacheStatus('Local cache cleared. Reloading…');
+            window.location.reload();
+        } catch (error) {
+            console.error('Failed to clear local cache', error);
+            setCacheStatus('Failed to clear cache. Please refresh manually.');
+            setIsClearingCache(false);
+        }
+    };
+
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
 
     const remaining = computed.weeklyWantsRemaining;
@@ -96,13 +149,31 @@ export default function BudgetHeader() {
                             </div>
                         ))}
                         <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">
-                            <div className="text-sm font-semibold text-white flex flex-col items-end gap-1 text-right">
+                            <div className="text-sm font-semibold text-white flex flex-col items-end gap-2 text-right w-full">
                                 <div className="flex flex-wrap items-center gap-2 justify-end">
                                     <span>Build #{buildInfo.buildNumber ?? '—'}</span>
+                                    <span className="text-white/40">/</span>
+                                    <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
+                                    {remoteBuildInfo?.builtAt ? (
+                                        <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
+                                    ) : (
+                                        <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
+                                    )}
                                 </div>
-                                <div className="text-[11px] font-medium text-white/70">
-                                    Updates install automatically when a new bundle is available.
+                                <div className="flex flex-wrap items-center gap-2 justify-end text-[11px] font-medium text-white/70">
+                                    <span>Updates auto-install from Vite.</span>
+                                    <button
+                                        type="button"
+                                        onClick={handleClearCache}
+                                        disabled={isClearingCache}
+                                        className="text-xs bg-white text-brand-700 font-semibold px-2.5 py-1 rounded-lg shadow-sm hover:bg-brand-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        {isClearingCache ? 'Clearing…' : 'Clear local cache'}
+                                    </button>
                                 </div>
+                                {cacheStatus && (
+                                    <div className="text-[11px] font-medium text-white/70" aria-live="polite">{cacheStatus}</div>
+                                )}
                             </div>
                         </div>
                     </div>
