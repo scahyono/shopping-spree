@@ -9,9 +9,8 @@ export default function ItemCard({ item, mode }) {
     const [editName, setEditName] = useState(item.name);
     const inputRef = useRef(null);
     const lastPointerRef = useRef({ x: 0, y: 0 });
-    const dragStartRef = useRef(null);
-    const [dragOffset, setDragOffset] = useState(0);
-    const [isDragging, setIsDragging] = useState(false);
+    const longPressTimerRef = useRef(null);
+    const pressStartRef = useRef(null);
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
@@ -76,67 +75,66 @@ export default function ItemCard({ item, mode }) {
         }
     };
 
-    const getActiveAction = (offset) => {
-        if (Math.abs(offset) < 10) return null;
-
-        return offset < 0 ? 'hide' : null;
-    };
-
-    const resetDrag = () => {
-        setDragOffset(0);
-        setIsDragging(false);
-        dragStartRef.current = null;
-    };
-
-    const startDrag = (point, source) => {
-        dragStartRef.current = { ...point, source };
-        lastPointerRef.current = point;
-        setIsDragging(true);
-    };
-
-    const updateDrag = (point, source) => {
-        if (!isDragging || !dragStartRef.current || dragStartRef.current.source !== source) return;
-        lastPointerRef.current = point;
-        const deltaX = point.x - dragStartRef.current.x;
-        setDragOffset(Math.min(deltaX, 0));
-    };
-
-    const endDrag = (source) => {
-        if (!isDragging || dragStartRef.current?.source !== source) return;
-        const action = Math.abs(dragOffset) > 80 ? getActiveAction(dragOffset) : null;
-
-        if (action === 'hide') {
-            actions.hideItem(item.id, mode);
+    const clearLongPress = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
         }
+    };
 
-        resetDrag();
+    const startLongPress = (point) => {
+        if (isEditing) return;
+        pressStartRef.current = point;
+        lastPointerRef.current = point;
+
+        clearLongPress();
+        longPressTimerRef.current = setTimeout(() => {
+            actions.hideItem(item.id, mode);
+        }, 600);
+    };
+
+    const cancelLongPressOnMove = (point) => {
+        if (!pressStartRef.current) return;
+        const dx = Math.abs(point.x - pressStartRef.current.x);
+        const dy = Math.abs(point.y - pressStartRef.current.y);
+
+        if (dx > 10 || dy > 10) {
+            clearLongPress();
+        }
+    };
+
+    const endLongPress = () => {
+        clearLongPress();
+        pressStartRef.current = null;
     };
 
     const handlePointerDown = (e) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
-        if (dragStartRef.current?.source === 'touch') return;
+        if (e.target.closest('button')) return;
         e.stopPropagation();
-        startDrag({ x: e.clientX, y: e.clientY }, 'pointer');
+        startLongPress({ x: e.clientX, y: e.clientY });
     };
 
     const handlePointerMove = (e) => {
-        updateDrag({ x: e.clientX, y: e.clientY }, 'pointer');
+        e.stopPropagation();
+        cancelLongPressOnMove({ x: e.clientX, y: e.clientY });
     };
 
-    const handlePointerEnd = (e) => {
-        e.stopPropagation();
-        endDrag('pointer');
+    const handlePointerEnd = () => {
+        endLongPress();
     };
 
     const handleTouchStart = (e) => {
         if (!e.touches?.length) return;
+        if (e.target.closest('button')) return;
         e.stopPropagation();
-        startDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
+        startLongPress({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     };
 
     const handleTouchMove = (e) => {
         if (!e.touches?.length) return;
-        updateDrag({ x: e.touches[0].clientX, y: e.touches[0].clientY }, 'touch');
+        e.stopPropagation();
+        cancelLongPressOnMove({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     };
 
     const handleTouchEnd = (e) => {
@@ -146,12 +144,8 @@ export default function ItemCard({ item, mode }) {
             x: e.changedTouches[0].clientX,
             y: e.changedTouches[0].clientY
         };
-        endDrag('touch');
+        endLongPress();
     };
-
-    const activeAction = getActiveAction(dragOffset);
-    const leftActionLabel = 'Swipe left to hide';
-    const leftBg = 'bg-red-50';
 
     return (
         <div
@@ -165,20 +159,11 @@ export default function ItemCard({ item, mode }) {
             onTouchEnd={handleTouchEnd}
         >
             <div
-                className={`absolute inset-0 rounded-xl px-4 flex items-center justify-end select-none transition-colors duration-150 ${activeAction === 'hide' ? leftBg : 'bg-gray-50'}`}
+                data-item-id={item.id}
+                className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 cursor-pointer"
                 style={{ touchAction: 'pan-y' }}
             >
-                <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap text-red-500 text-right transition-opacity ${dragOffset < -10 ? 'opacity-100' : 'opacity-40'}`}>
-                    {leftActionLabel}
-                </span>
-            </div>
-
-            <div
-                data-item-id={item.id}
-                className={`bg-white rounded-xl shadow-sm p-4 flex items-center justify-between group animate-pop transition-transform duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
-                style={{ transform: `translateX(${dragOffset}px)`, touchAction: 'pan-y' }}
-            >
-            <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2">
                 {isEditing ? (
                     <input
                         ref={inputRef}

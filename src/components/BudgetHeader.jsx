@@ -6,7 +6,7 @@ import buildInfo from '../buildInfo.json';
 import { formatCurrency, parseCurrencyInput } from '../utils/currency';
 
 export default function BudgetHeader() {
-    const { computed, actions, budget, loading, currentUser } = useApp();
+    const { computed, actions, budget, loading } = useApp();
     const [expanded, setExpanded] = useState(false);
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
     const [cacheStatus, setCacheStatus] = useState('');
@@ -17,7 +17,6 @@ export default function BudgetHeader() {
     const actionBarRef = useRef(null);
     const [actionBarPosition, setActionBarPosition] = useState({ top: 0, left: 0, width: 0 });
 
-    const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
     const formatBuildTimestamp = (timestamp) => {
         if (!timestamp) return '—';
         try {
@@ -164,15 +163,12 @@ export default function BudgetHeader() {
             <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
                 <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
                     <div className="flex flex-col gap-1">
-                        {labsEnabled && (
                         <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Wants</div>
-                    )}
-                    <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
-                        Week {computed.currentWeek} / {computed.totalWeeks}
+                        <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
+                            Week {computed.currentWeek} / {computed.totalWeeks}
+                        </div>
                     </div>
-                </div>
-                {/* The Single Truth */}
-                {labsEnabled ? (
+                    {/* The Single Truth */}
                     <button
                         type="button"
                         onClick={() => setExpanded(!expanded)}
@@ -186,24 +182,18 @@ export default function BudgetHeader() {
                             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                     </button>
-                ) : (
-                    <div className="justify-self-center text-center text-sm font-semibold opacity-50" aria-hidden="true">
-                        —
+                    <div className="flex justify-end items-start text-right">
+                        <SyncControls compact />
                     </div>
-                )}
-                <div className="flex justify-end items-start text-right">
-                    <SyncControls compact />
                 </div>
-            </div>
 
-            {/* Detailed View */}
-            {labsEnabled && (
+                {/* Detailed View */}
                 <div className={`bg-brand-600 overflow-hidden transition-all duration-300 ease-in-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="p-4 space-y-4">
                         <div className="flex items-start justify-between gap-4 text-xs uppercase tracking-wide text-brand-100">
                             <div className="flex flex-col gap-1">
-                                <span className="font-semibold">Labs</span>
-                                <span className="text-[11px] opacity-80">Budget configuration</span>
+                                <span className="font-semibold">Budget</span>
+                                <span className="text-[11px] opacity-80">Configuration</span>
                             </div>
                         </div>
                         {['income', 'needs', 'future', 'wants'].map(cat => (
@@ -276,7 +266,6 @@ export default function BudgetHeader() {
                         </div>
                     </div>
                 </div>
-            )}
             </header>
             {activeBudgetField && (
                 <div className="fixed inset-0 z-30 pointer-events-none">

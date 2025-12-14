@@ -96,8 +96,8 @@ export default function Layout({ children }) {
                 aria-label="Swipe left or right on empty space to switch between tabs"
             >
                 <p className="sr-only">
-                    Swipe left or right on empty space to switch between Shop and Stock. Swipe item cards to reveal hide or
-                    buy actions.
+                    Swipe left or right on empty space to switch between Shop and Stock. Long-press an item card to hide it;
+                    use the visible buttons to buy or move items.
                 </p>
                 {children}
             </main>
