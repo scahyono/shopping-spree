@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
@@ -9,7 +9,11 @@ export default function BudgetHeader() {
     const [expanded, setExpanded] = useState(false);
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
     const [cacheStatus, setCacheStatus] = useState('');
-    const [isClearingCache, setIsClearingCache] = useState(false);
+    const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
+    const [activeBudgetField, setActiveBudgetField] = useState(null);
+    const [pendingValue, setPendingValue] = useState('');
+    const inputRefs = useRef({});
+    const actionBarRef = useRef(null);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
     const formatBuildTimestamp = (timestamp) => {
@@ -38,9 +42,9 @@ export default function BudgetHeader() {
         return () => unsubscribe?.();
     }, []);
 
-    const handleClearCache = async () => {
+    const handleUpdateApp = async () => {
         setCacheStatus('');
-        setIsClearingCache(true);
+        setIsApplyingUpdate(true);
 
         try {
             if ('caches' in window) {
@@ -53,13 +57,64 @@ export default function BudgetHeader() {
                 await Promise.all(registrations.map((registration) => registration.unregister()));
             }
 
-            setCacheStatus('Local cache cleared. Reloading…');
+            setCacheStatus('Update applied. Reloading…');
             window.location.reload();
         } catch (error) {
             console.error('Failed to clear local cache', error);
-            setCacheStatus('Failed to clear cache. Please refresh manually.');
-            setIsClearingCache(false);
+            setCacheStatus('Update failed. Please refresh manually.');
+            setIsApplyingUpdate(false);
         }
+    };
+
+    const getFieldKey = (category, field) => `${category}-${field}`;
+    const isFieldActive = (category, field) => activeBudgetField?.category === category && activeBudgetField?.field === field;
+
+    const handleInputFocus = (category, field) => {
+        setActiveBudgetField({ category, field });
+        setPendingValue('');
+    };
+
+    const handleInputChange = (category, field, value) => {
+        setActiveBudgetField({ category, field });
+        setPendingValue(value);
+    };
+
+    const handleInputBlur = () => {
+        setTimeout(() => {
+            const activeElement = document.activeElement;
+            const isBudgetInput = Object.values(inputRefs.current).includes(activeElement);
+            const isActionBarElement = actionBarRef.current?.contains(activeElement);
+
+            if (!isBudgetInput && !isActionBarElement) {
+                setActiveBudgetField(null);
+                setPendingValue('');
+            }
+        }, 0);
+    };
+
+    const parsePendingValue = () => {
+        const amount = parseFloat(pendingValue);
+        return Number.isFinite(amount) ? amount : 0;
+    };
+
+    const applyBudgetAction = (actionType) => {
+        if (!activeBudgetField) return;
+
+        const { category, field } = activeBudgetField;
+        const baseValue = Number(budget?.[category]?.[field]) || 0;
+        const amount = parsePendingValue();
+        let nextValue = baseValue;
+
+        if (actionType === 'set') nextValue = amount;
+        if (actionType === 'add') nextValue = baseValue + amount;
+        if (actionType === 'sub') nextValue = baseValue - amount;
+
+        actions.updateBudget(category, field, nextValue);
+        setPendingValue('');
+
+        const inputEl = inputRefs.current[getFieldKey(category, field)];
+        inputEl?.focus();
+        inputEl?.select();
     };
 
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
@@ -68,10 +123,11 @@ export default function BudgetHeader() {
     const isNegative = remaining < 0;
 
     return (
-        <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
-            <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
-                <div className="flex flex-col gap-1">
-                    {labsEnabled && (
+        <>
+            <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
+                <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
+                    <div className="flex flex-col gap-1">
+                        {labsEnabled && (
                         <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Wants</div>
                     )}
                     <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
@@ -120,23 +176,31 @@ export default function BudgetHeader() {
                                     <div>
                                         <div className="text-xs opacity-60">Target</div>
                                         <input
+                                            ref={(el) => { inputRefs.current[getFieldKey(cat, 'target')] = el; }}
                                             type="number"
                                             className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'wants' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={budget[cat].target}
-                                            onChange={(e) => actions.updateBudget(cat, 'target', e.target.value)}
+                                            value={isFieldActive(cat, 'target') ? pendingValue : budget[cat].target}
+                                            onChange={(e) => handleInputChange(cat, 'target', e.target.value)}
+                                            onFocus={() => handleInputFocus(cat, 'target')}
+                                            onBlur={handleInputBlur}
                                             onClick={(e) => e.stopPropagation()}
                                             disabled={cat === 'wants'}
+                                            placeholder={String(budget[cat].target)}
                                         />
                                     </div>
                                     <div className="border-l border-brand-500 pl-4">
                                         <div className="text-xs opacity-60">Actual</div>
                                         <input
+                                            ref={(el) => { inputRefs.current[getFieldKey(cat, 'actual')] = el; }}
                                             type="number"
                                             className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'income' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={budget[cat].actual}
-                                            onChange={(e) => actions.updateBudget(cat, 'actual', e.target.value)}
+                                            value={isFieldActive(cat, 'actual') ? pendingValue : budget[cat].actual}
+                                            onChange={(e) => handleInputChange(cat, 'actual', e.target.value)}
+                                            onFocus={() => handleInputFocus(cat, 'actual')}
+                                            onBlur={handleInputBlur}
                                             onClick={(e) => e.stopPropagation()}
                                             disabled={cat === 'income'}
+                                            placeholder={String(budget[cat].actual)}
                                         />
                                     </div>
                                     <div className="border-l border-brand-500 pl-4">
@@ -159,16 +223,13 @@ export default function BudgetHeader() {
                                     ) : (
                                         <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
                                     )}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-2 justify-end text-[11px] font-medium text-white/70">
-                                    <span>Updates auto-install from Vite.</span>
                                     <button
                                         type="button"
-                                        onClick={handleClearCache}
-                                        disabled={isClearingCache}
+                                        onClick={handleUpdateApp}
+                                        disabled={isApplyingUpdate}
                                         className="text-xs bg-white text-brand-700 font-semibold px-2.5 py-1 rounded-lg shadow-sm hover:bg-brand-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
-                                        {isClearingCache ? 'Clearing…' : 'Clear local cache'}
+                                        {isApplyingUpdate ? 'Updating…' : 'Update'}
                                     </button>
                                 </div>
                                 {cacheStatus && (
@@ -179,6 +240,50 @@ export default function BudgetHeader() {
                     </div>
                 </div>
             )}
-        </header>
+            </header>
+            {activeBudgetField && (
+                <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-4">
+                    <div
+                        ref={actionBarRef}
+                        className="max-w-xl mx-auto bg-white text-gray-800 rounded-2xl shadow-xl border border-gray-100 p-3"
+                        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+                    >
+                        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                            <span>
+                                {activeBudgetField.category} — {activeBudgetField.field}
+                            </span>
+                            <span className="text-gray-700">Current: {budget?.[activeBudgetField.category]?.[activeBudgetField.field] ?? 0}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => applyBudgetAction('set')}
+                                className="flex-1 py-2 rounded-lg font-semibold text-sm uppercase bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-[0.99] transition"
+                            >
+                                = Set
+                            </button>
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => applyBudgetAction('add')}
+                                className="flex-1 py-2 rounded-lg font-semibold text-sm uppercase bg-green-100 text-green-800 hover:bg-green-200 active:scale-[0.99] transition"
+                            >
+                                + Add
+                            </button>
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => applyBudgetAction('sub')}
+                                className="flex-1 py-2 rounded-lg font-semibold text-sm uppercase bg-red-100 text-red-800 hover:bg-red-200 active:scale-[0.99] transition"
+                            >
+                                − Sub
+                            </button>
+                        </div>
+                        <div className="mt-2 text-[11px] text-gray-500">Enter an amount, then choose how to apply it.</div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
