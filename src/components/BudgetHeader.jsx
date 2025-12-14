@@ -8,6 +8,7 @@ export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
+    const [isUpgrading, setIsUpgrading] = useState(false);
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
     const formatBuildTimestamp = (timestamp) => {
@@ -40,6 +41,37 @@ export default function BudgetHeader() {
 
     const remaining = computed.weeklyWantsRemaining;
     const isNegative = remaining < 0;
+    const remoteBuildNumber = Number(remoteBuildInfo?.buildNumber);
+    const localBuildNumber = Number(buildInfo.buildNumber);
+    const hasUpgradeAvailable = Number.isFinite(remoteBuildNumber)
+        && Number.isFinite(localBuildNumber)
+        && remoteBuildNumber > localBuildNumber;
+
+    const handleUpgrade = async () => {
+        try {
+            setIsUpgrading(true);
+            localStorage.clear();
+
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                for (const key of keys) {
+                    await caches.delete(key);
+                }
+            }
+
+            window.location.href = `${window.location.pathname}?t=${Date.now()}`;
+        } catch (error) {
+            console.error('Manual reset failed:', error);
+            window.location.reload();
+        }
+    };
 
     return (
         <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
@@ -123,14 +155,26 @@ export default function BudgetHeader() {
                             </div>
                         ))}
                         <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">
-                            <div className="text-sm font-semibold text-white flex flex-wrap items-center gap-2 text-right">
-                                <span>Build #{buildInfo.buildNumber ?? '—'}</span>
-                                <span className="text-white/40">/</span>
-                                <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
-                                {remoteBuildInfo?.builtAt ? (
-                                    <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
-                                ) : (
-                                    <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
+                            <div className="text-sm font-semibold text-white flex flex-wrap items-center gap-3 text-right">
+                                <div className="flex items-center gap-2">
+                                    <span>Build #{buildInfo.buildNumber ?? '—'}</span>
+                                    <span className="text-white/40">/</span>
+                                    <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
+                                    {remoteBuildInfo?.builtAt ? (
+                                        <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
+                                    ) : (
+                                        <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
+                                    )}
+                                </div>
+                                {hasUpgradeAvailable && (
+                                    <button
+                                        type="button"
+                                        onClick={handleUpgrade}
+                                        disabled={isUpgrading}
+                                        className="text-xs bg-white text-brand-700 font-semibold px-2.5 py-1 rounded-lg shadow-sm hover:bg-brand-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        {isUpgrading ? 'Upgrading…' : 'Upgrade'}
+                                    </button>
                                 )}
                             </div>
                         </div>
