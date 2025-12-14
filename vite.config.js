@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import buildInfo from './src/buildInfo.json' with { type: 'json' }
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -7,6 +8,9 @@ export default defineConfig({
   base: '/shopping-spree/', // For GitHub Pages
   build: {
     outDir: 'docs'
+  },
+  define: {
+    'import.meta.env.VITE_BUILD_NUMBER': JSON.stringify(buildInfo.buildNumber)
   },
   test: {
     globals: true,

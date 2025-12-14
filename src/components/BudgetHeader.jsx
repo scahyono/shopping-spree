@@ -9,6 +9,7 @@ export default function BudgetHeader() {
     const [expanded, setExpanded] = useState(false);
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
     const [isUpgrading, setIsUpgrading] = useState(false);
+    const [upgradeStatus, setUpgradeStatus] = useState('');
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
     const formatBuildTimestamp = (timestamp) => {
@@ -50,6 +51,7 @@ export default function BudgetHeader() {
     const handleUpgrade = async () => {
         try {
             setIsUpgrading(true);
+            setUpgradeStatus('Updating to the latest version…');
             localStorage.clear();
 
             if ('serviceWorker' in navigator) {
@@ -72,6 +74,12 @@ export default function BudgetHeader() {
             window.location.reload();
         }
     };
+
+    useEffect(() => {
+        if (hasUpgradeAvailable && !isUpgrading) {
+            handleUpgrade();
+        }
+    }, [hasUpgradeAvailable, isUpgrading]);
 
     return (
         <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
@@ -155,31 +163,26 @@ export default function BudgetHeader() {
                             </div>
                         ))}
                         <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">
-                            <div className="text-sm font-semibold text-white flex flex-wrap items-center gap-3 text-right">
-                                <div className="flex items-center gap-2">
-                                    <span>Build #{buildInfo.buildNumber ?? '—'}</span>
-                                    <span className="text-white/40">/</span>
-                                    <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
-                                    {remoteBuildInfo?.builtAt ? (
-                                        <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
-                                    ) : (
-                                        <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
-                                    )}
+                                <div className="text-sm font-semibold text-white flex flex-col items-end gap-1 text-right">
+                                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                                        <span>Build #{buildInfo.buildNumber ?? '—'}</span>
+                                        <span className="text-white/40">/</span>
+                                        <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
+                                        {remoteBuildInfo?.builtAt ? (
+                                            <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
+                                        ) : (
+                                            <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
+                                        )}
+                                    </div>
+                                    <div className="text-[11px] font-medium text-white/70">
+                                        {hasUpgradeAvailable || isUpgrading
+                                            ? upgradeStatus || 'Updating to the latest version…'
+                                            : 'Updates install automatically.'}
+                                    </div>
                                 </div>
-                                {hasUpgradeAvailable && (
-                                    <button
-                                        type="button"
-                                        onClick={handleUpgrade}
-                                        disabled={isUpgrading}
-                                        className="text-xs bg-white text-brand-700 font-semibold px-2.5 py-1 rounded-lg shadow-sm hover:bg-brand-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                                    >
-                                        {isUpgrading ? 'Upgrading…' : 'Upgrade'}
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </div>
-                </div>
             )}
         </header>
     );
