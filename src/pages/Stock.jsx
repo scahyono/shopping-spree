@@ -5,7 +5,7 @@ import SmartOmnibox from '../components/SmartOmnibox';
 import { useApp } from '../context/AppContext';
 import useOmniboxSearch from '../hooks/useOmniboxSearch';
 import { scrollAndHighlightItem } from '../utils/highlightItem';
-import { sortByActivationThenName } from '../utils/omnibox';
+import { sortByName } from '../utils/omnibox';
 
 export default function StockPage() {
     const { items, actions } = useApp();
@@ -22,7 +22,7 @@ export default function StockPage() {
     } = useOmniboxSearch({ items, isActive });
 
     const stockItems = useMemo(
-        () => items.filter(isActive).sort(sortByActivationThenName),
+        () => items.filter(isActive).sort(sortByName),
         [items, isActive]
     );
 
@@ -38,7 +38,7 @@ export default function StockPage() {
 
     return (
         <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Inventory</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Stock Checklist</h2>
 
             <SmartOmnibox
                 items={items}
@@ -49,7 +49,7 @@ export default function StockPage() {
                 onQueryChange={setQuery}
                 placeholder="Search or Add item..."
                 actionIcon={PackagePlus}
-                actionLabel="Add to inventory"
+                actionLabel="Add to checklist"
             />
 
             {!hasQuery && stockItems.length === 0 && (
@@ -77,7 +77,7 @@ export default function StockPage() {
                                                 onClick={() => actions.toggleStock(item.id, true)}
                                                 className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors bg-brand-500 text-white hover:bg-brand-600"
                                             >
-                                                Add to inventory
+                                                Add to checklist
                                             </button>
                                         </div>
                                     ))}
@@ -97,7 +97,7 @@ export default function StockPage() {
                                                 onClick={() => actions.toggleStock(item.id, true)}
                                                 className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors bg-brand-500 text-white hover:bg-brand-600"
                                             >
-                                                Add to inventory
+                                                Add to checklist
                                             </button>
                                         </div>
                                     ))}
@@ -106,7 +106,7 @@ export default function StockPage() {
 
                             {activeMatches.length > 0 && (
                                 <div className="space-y-2">
-                                    <p className="text-xs uppercase tracking-wide text-gray-500">Already in inventory</p>
+                                    <p className="text-xs uppercase tracking-wide text-gray-500">Already on checklist</p>
                                     {activeMatches.map(item => (
                                         <div
                                             key={item.id}
@@ -117,7 +117,7 @@ export default function StockPage() {
                                                 disabled
                                                 className="px-3 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-500 cursor-not-allowed"
                                             >
-                                                In inventory
+                                                On checklist
                                             </button>
                                         </div>
                                     ))}

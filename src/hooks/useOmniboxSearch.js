@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { normalizeName, sortByActivationThenName } from '../utils/omnibox';
+import { normalizeName, sortByName } from '../utils/omnibox';
 
 export default function useOmniboxSearch({ items, isActive }) {
     const [query, setQuery] = useState('');
@@ -15,7 +15,7 @@ export default function useOmniboxSearch({ items, isActive }) {
         [...matches].sort((a, b) => {
             const activeDelta = Number(isActive(a)) - Number(isActive(b));
             if (activeDelta !== 0) return activeDelta;
-            return sortByActivationThenName(a, b);
+            return sortByName(a, b);
         }),
     [matches, isActive]);
 

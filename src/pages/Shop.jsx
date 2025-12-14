@@ -5,7 +5,7 @@ import SmartOmnibox from '../components/SmartOmnibox';
 import { useApp } from '../context/AppContext';
 import useOmniboxSearch from '../hooks/useOmniboxSearch';
 import { scrollAndHighlightItem } from '../utils/highlightItem';
-import { sortByActivationThenName } from '../utils/omnibox';
+import { sortByName } from '../utils/omnibox';
 
 export default function ShopPage() {
     const { items, actions } = useApp();
@@ -22,7 +22,7 @@ export default function ShopPage() {
     } = useOmniboxSearch({ items, isActive });
 
     const shopItems = useMemo(
-        () => items.filter(isActive).sort(sortByActivationThenName),
+        () => items.filter(isActive).sort(sortByName),
         [items, isActive]
     );
 
