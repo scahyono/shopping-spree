@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import SyncControls from './SyncControls';
@@ -7,79 +7,12 @@ import buildInfo from '../buildInfo.json';
 export default function BudgetHeader() {
     const { computed, actions, budget, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
-    const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
-    const [isUpgrading, setIsUpgrading] = useState(false);
-    const [upgradeStatus, setUpgradeStatus] = useState('');
 
     const labsEnabled = currentUser?.uid === 'vy1PP3WXv3PFz6zyCEiEN0ILmDW2';
-    const formatBuildTimestamp = (timestamp) => {
-        if (!timestamp) return '—';
-        try {
-            const date = new Date(timestamp);
-            const pad = (value) => value.toString().padStart(2, '0');
-
-            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-        } catch {
-            return timestamp;
-        }
-    };
-
-    useEffect(() => {
-        let unsubscribe;
-
-        import('../services/firebase')
-            .then(({ listenToBuildInfo }) => {
-                unsubscribe = listenToBuildInfo((info) => setRemoteBuildInfo(info));
-            })
-            .catch((error) => {
-                console.error('Build info listener error:', error);
-            });
-
-        return () => unsubscribe?.();
-    }, []);
-
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
 
     const remaining = computed.weeklyWantsRemaining;
     const isNegative = remaining < 0;
-    const remoteBuildNumber = Number(remoteBuildInfo?.buildNumber);
-    const localBuildNumber = Number(buildInfo.buildNumber);
-    const hasUpgradeAvailable = Number.isFinite(remoteBuildNumber)
-        && Number.isFinite(localBuildNumber)
-        && remoteBuildNumber > localBuildNumber;
-
-    const handleUpgrade = async () => {
-        try {
-            setIsUpgrading(true);
-            setUpgradeStatus('Updating to the latest version…');
-            localStorage.clear();
-
-            if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) {
-                    await registration.unregister();
-                }
-            }
-
-            if ('caches' in window) {
-                const keys = await caches.keys();
-                for (const key of keys) {
-                    await caches.delete(key);
-                }
-            }
-
-            window.location.href = `${window.location.pathname}?t=${Date.now()}`;
-        } catch (error) {
-            console.error('Manual reset failed:', error);
-            window.location.reload();
-        }
-    };
-
-    useEffect(() => {
-        if (hasUpgradeAvailable && !isUpgrading) {
-            handleUpgrade();
-        }
-    }, [hasUpgradeAvailable, isUpgrading]);
 
     return (
         <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
@@ -163,26 +96,17 @@ export default function BudgetHeader() {
                             </div>
                         ))}
                         <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">
-                                <div className="text-sm font-semibold text-white flex flex-col items-end gap-1 text-right">
-                                    <div className="flex flex-wrap items-center gap-2 justify-end">
-                                        <span>Build #{buildInfo.buildNumber ?? '—'}</span>
-                                        <span className="text-white/40">/</span>
-                                        <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
-                                        {remoteBuildInfo?.builtAt ? (
-                                            <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
-                                        ) : (
-                                            <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
-                                        )}
-                                    </div>
-                                    <div className="text-[11px] font-medium text-white/70">
-                                        {hasUpgradeAvailable || isUpgrading
-                                            ? upgradeStatus || 'Updating to the latest version…'
-                                            : 'Updates install automatically.'}
-                                    </div>
+                            <div className="text-sm font-semibold text-white flex flex-col items-end gap-1 text-right">
+                                <div className="flex flex-wrap items-center gap-2 justify-end">
+                                    <span>Build #{buildInfo.buildNumber ?? '—'}</span>
+                                </div>
+                                <div className="text-[11px] font-medium text-white/70">
+                                    Updates install automatically when a new bundle is available.
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
             )}
         </header>
     );
