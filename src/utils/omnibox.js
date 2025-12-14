@@ -26,9 +26,5 @@ export function findBestSuggestion(items, rawInput) {
     return sorted[0];
 }
 
-export const sortByActivationThenName = (a, b) => {
-    const activationDelta = (b.activatedAt ?? 0) - (a.activatedAt ?? 0);
-    if (activationDelta !== 0) return activationDelta;
-
-    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-};
+export const sortByName = (a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
