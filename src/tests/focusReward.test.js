@@ -13,17 +13,20 @@ describe('focus reward cooldown', () => {
 
         expect(result.shouldCelebrate).toBe(false);
         expect(result.focusRank).toBe(maxRank);
+        expect(result.previousFocusRank).toBe(maxRank);
         expect(result.lastSessionStart).toBeNull();
     });
 
     it('rewards when the three-hour abstinence window is complete', () => {
         const lastSession = 1_000;
         localStorage.setItem(storageKeys.LAST_SESSION_START, String(lastSession));
+        localStorage.setItem(storageKeys.FOCUS_RANK, '4');
 
         const result = evaluateFocusReward(lastSession + cooldownMs + 10);
 
         expect(result.shouldCelebrate).toBe(true);
         expect(result.focusRank).toBe(maxRank);
+        expect(result.previousFocusRank).toBe(4);
         expect(result.lastSessionStart).toBe(lastSession);
         expect(localStorage.getItem(storageKeys.FOCUS_RANK)).toBe(String(maxRank));
         expect(Number(localStorage.getItem(storageKeys.LAST_REWARDED_AT))).toBe(lastSession + cooldownMs + 10);
@@ -39,6 +42,7 @@ describe('focus reward cooldown', () => {
 
         expect(result.shouldCelebrate).toBe(false);
         expect(result.focusRank).toBe(maxRank);
+        expect(result.previousFocusRank).toBe(maxRank);
         expect(result.lastSessionStart).toBe(lastSession);
     });
 

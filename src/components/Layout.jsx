@@ -83,7 +83,7 @@ export default function Layout({ children }) {
         const reward = evaluateFocusReward(now);
 
         if (reward.shouldCelebrate) {
-            setFocusCelebration({ rank: reward.focusRank });
+            setFocusCelebration({ rank: reward.focusRank, previousRank: reward.previousFocusRank });
         }
 
         markSessionStart(now);
@@ -147,7 +147,11 @@ export default function Layout({ children }) {
             </footer>
 
             {focusCelebration ? (
-                <FocusCelebration rank={focusCelebration.rank} onDismiss={() => setFocusCelebration(null)} />
+                <FocusCelebration
+                    rank={focusCelebration.rank}
+                    previousRank={focusCelebration.previousRank}
+                    onDismiss={() => setFocusCelebration(null)}
+                />
             ) : null}
         </div>
     );

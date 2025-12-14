@@ -40,9 +40,10 @@ function playCelebrationTone(audioContextRef) {
     }
 }
 
-export default function FocusCelebration({ rank = maxRank, onDismiss }) {
+export default function FocusCelebration({ rank = maxRank, previousRank, onDismiss }) {
     const audioContextRef = useRef(null);
     const hours = Math.round(cooldownMs / (1000 * 60 * 60));
+    const priorRank = Number.isFinite(previousRank) ? previousRank : rank;
 
     useEffect(() => {
         playCelebrationTone(audioContextRef);
@@ -76,10 +77,10 @@ export default function FocusCelebration({ rank = maxRank, onDismiss }) {
 
                 <div className="flex items-center justify-center gap-3 mb-2">
                     <PartyPopper className="h-7 w-7" aria-hidden />
-                    <h1 className="text-3xl sm:text-4xl font-black">Rank {rank} Restored</h1>
+                    <h1 className="text-3xl sm:text-4xl font-black">Focus Rank: {rank} (was {priorRank})</h1>
                 </div>
 
-                <p className="text-xl font-semibold text-white/90 mb-4">Discipline Rewarded</p>
+                <p className="text-xl font-semibold text-white/90 mb-4">Rank Restored</p>
                 <p className="text-sm sm:text-base text-white/80 mb-6 leading-relaxed">
                     You stayed out for {hours} hours. Your Focus Rank is reset to the maximum level—enjoy the minimum delay and a fresh start.
                 </p>

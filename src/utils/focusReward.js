@@ -27,6 +27,7 @@ export function getFocusRank() {
 export function evaluateFocusReward(timestamp = Date.now()) {
     const lastSessionStart = readNumber(STORAGE_KEYS.LAST_SESSION_START);
     const lastRewardedAt = readNumber(STORAGE_KEYS.LAST_REWARDED_AT);
+    const previousFocusRank = getFocusRank();
     const hasServedCooldown = Number.isFinite(lastSessionStart)
         ? timestamp - lastSessionStart >= THREE_HOURS_MS
         : false;
@@ -41,13 +42,15 @@ export function evaluateFocusReward(timestamp = Date.now()) {
         return {
             shouldCelebrate: true,
             focusRank: MAX_FOCUS_RANK,
+            previousFocusRank,
             lastSessionStart
         };
     }
 
     return {
         shouldCelebrate: false,
-        focusRank: getFocusRank(),
+        focusRank: previousFocusRank,
+        previousFocusRank,
         lastSessionStart
     };
 }
