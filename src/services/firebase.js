@@ -127,17 +127,25 @@ export async function loadBuildInfoFromDatabase() {
     return snapshot.val();
 }
 
+function buildBudgetMetadata(user) {
+    return {
+        lastModified: new Date().toISOString(),
+        lastModifiedBy: user?.email ?? 'Local user'
+    };
+}
+
 // Granular update for a single budget field
 export async function updateBudgetField(category, field, value) {
     const { database, auth } = initializeFirebase();
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const budgetFieldRef = ref(database, `family/shared/budget/${category}/${field}`);
+    const metadata = buildBudgetMetadata(user);
+
     await update(ref(database, 'family/shared'), {
         [`budget/${category}/${field}`]: value,
-        lastModified: new Date().toISOString(),
-        lastModifiedBy: user.email
+        'budget/metadata/lastModified': metadata.lastModified,
+        'budget/metadata/lastModifiedBy': metadata.lastModifiedBy
     });
 }
 
@@ -173,11 +181,12 @@ export async function saveFamilyBudget(budget) {
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
+    const metadata = buildBudgetMetadata(user);
     const familyRef = ref(database, 'family/shared');
     await update(familyRef, {
         budget,
-        lastModified: new Date().toISOString(),
-        lastModifiedBy: user.email
+        'budget/metadata/lastModified': metadata.lastModified,
+        'budget/metadata/lastModifiedBy': metadata.lastModifiedBy
     });
 }
 

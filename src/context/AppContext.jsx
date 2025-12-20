@@ -175,11 +175,19 @@ export function AppProvider({ children }) {
         if (category === 'wants' && field === 'target') return;
 
         const parsedValue = Math.round(Number(value) || 0);
+        const metadata = {
+            lastModified: new Date().toISOString(),
+            lastModifiedBy: currentUser?.email ?? 'Local user'
+        };
 
         setBudget(prev => {
             const nextBudget = {
                 ...prev,
                 currencyVersion: prev.currencyVersion ?? BUDGET_CURRENCY_VERSION,
+                metadata: {
+                    ...prev.metadata,
+                    ...metadata
+                },
                 [category]: {
                     ...prev[category],
                     [field]: parsedValue

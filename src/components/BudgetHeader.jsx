@@ -17,7 +17,7 @@ export default function BudgetHeader() {
     const actionBarRef = useRef(null);
     const [actionBarPosition, setActionBarPosition] = useState({ top: 0, left: 0, width: 0 });
 
-    const formatBuildTimestamp = (timestamp) => {
+    const formatTimestamp = (timestamp) => {
         if (!timestamp) return '—';
         try {
             const date = new Date(timestamp);
@@ -195,6 +195,15 @@ export default function BudgetHeader() {
                                 <span className="font-semibold">Budget</span>
                                 <span className="text-[11px] opacity-80">Configuration</span>
                             </div>
+                            <div className="flex flex-col items-end gap-1 text-right">
+                                <span className="text-[10px] font-semibold tracking-widest uppercase text-brand-200">Last Modified</span>
+                                <span className="text-[11px] font-semibold text-white">
+                                    {budget?.metadata?.lastModified ? formatTimestamp(budget.metadata.lastModified) : '—'}
+                                </span>
+                                {budget?.metadata?.lastModifiedBy ? (
+                                    <span className="text-[10px] text-brand-200">by {budget.metadata.lastModifiedBy}</span>
+                                ) : null}
+                            </div>
                         </div>
                         {['income', 'needs', 'future', 'wants'].map(cat => (
                             <div key={cat} className="flex items-center justify-between">
@@ -246,7 +255,7 @@ export default function BudgetHeader() {
                                     <span className="text-white/40">/</span>
                                     <span>DB #{remoteBuildInfo?.buildNumber ?? '—'}</span>
                                     {remoteBuildInfo?.builtAt ? (
-                                        <span className="text-[11px] font-medium text-white/60">({formatBuildTimestamp(remoteBuildInfo.builtAt)})</span>
+                                        <span className="text-[11px] font-medium text-white/60">({formatTimestamp(remoteBuildInfo.builtAt)})</span>
                                     ) : (
                                         <span className="text-[11px] font-medium text-white/60">Waiting for database build metadata</span>
                                     )}
