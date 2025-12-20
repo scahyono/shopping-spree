@@ -17,6 +17,10 @@ export function parseCurrencyInput(input) {
 export function createDefaultBudget() {
     return {
         currencyVersion: BUDGET_CURRENCY_VERSION,
+        metadata: {
+            lastModified: null,
+            lastModifiedBy: null
+        },
         income: { target: 0, actual: 0 },
         needs: { target: 0, actual: 0 },
         future: { target: 0, actual: 0 },
@@ -35,8 +39,13 @@ export function normalizeBudgetToCents(rawBudget) {
         return needsMigration ? Math.round(numeric * CURRENCY_SCALE) : Math.round(numeric);
     };
 
+    const sourceMetadata = sourceBudget?.metadata && typeof sourceBudget.metadata === 'object' ? sourceBudget.metadata : {};
     const normalized = {
         currencyVersion: BUDGET_CURRENCY_VERSION,
+        metadata: {
+            lastModified: typeof sourceMetadata.lastModified === 'string' ? sourceMetadata.lastModified : (typeof sourceBudget.lastModified === 'string' ? sourceBudget.lastModified : null),
+            lastModifiedBy: typeof sourceMetadata.lastModifiedBy === 'string' ? sourceMetadata.lastModifiedBy : (typeof sourceBudget.lastModifiedBy === 'string' ? sourceBudget.lastModifiedBy : null)
+        },
         income: {
             target: normalizeValue(sourceBudget.income?.target ?? 0),
             actual: normalizeValue(sourceBudget.income?.actual ?? 0)
