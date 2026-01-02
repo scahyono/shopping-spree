@@ -38,13 +38,15 @@ export function useSmartOmnibox({
     const applyAutocomplete = (rawValue, pausedOverride = autocompletePaused) => {
         hadSuggestionRef.current = false;
 
+        const endsWithWhitespace = /\s$/.test(rawValue);
+
         if (!rawValue) {
             setValue('');
             setPendingSelection({ start: 0, end: 0 });
             return;
         }
 
-        if (pausedOverride) {
+        if (pausedOverride || endsWithWhitespace) {
             setValue(rawValue);
             setPendingSelection({ start: rawValue.length, end: rawValue.length });
             return;

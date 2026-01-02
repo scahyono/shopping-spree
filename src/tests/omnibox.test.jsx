@@ -337,6 +337,54 @@ describe('SmartOmnibox', () => {
         });
     });
 
+    test('typing_multiword_item_keeps_progress_after_space', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking Soda', isOnShoppingList: false, isInStock: false },
+                { id: '2', name: 'Baking Powder', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        const typeValue = async (value) => {
+            fireEvent.change(input, {
+                target: { value, selectionStart: value.length, selectionEnd: value.length },
+                nativeEvent: { inputType: 'insertText' },
+            });
+
+            await waitFor(() => {
+                expect(input.value.length).toBeGreaterThan(0);
+            });
+        };
+
+        await typeValue('B');
+        await typeValue('Ba');
+        await typeValue('Bak');
+        await typeValue('Baki');
+        await typeValue('Bakin');
+        await typeValue('Baking');
+
+        await waitFor(() => {
+            expect(input.value.toLowerCase().startsWith('baking')).toBe(true);
+        });
+
+        await typeValue('Baking ');
+
+        await waitFor(() => {
+            expect(input.value).toBe('Baking ');
+            expect(input.selectionStart).toBe(7);
+            expect(input.selectionEnd).toBe(7);
+        });
+
+        await typeValue('Baking P');
+        await typeValue('Baking Po');
+        await typeValue('Baking Pow');
+
+        await waitFor(() => {
+            expect(input.value.toLowerCase().startsWith('baking pow')).toBe(true);
+            expect(input.selectionStart).toBeGreaterThanOrEqual(9);
+        });
+    });
+
     test('onQueryChange_receives_raw_query_with_trailing_space', async () => {
         const onQueryChange = vi.fn();
         const { input } = renderHarness({
