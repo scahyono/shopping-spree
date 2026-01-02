@@ -16,6 +16,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/tests/setup.js',
-    include: ['src/tests/**/*.{test,spec}.{js,jsx}']
+    include: ['src/tests/**/*.{test,spec}.{js,jsx}'],
+    reporters: 'verbose'
   }
 })

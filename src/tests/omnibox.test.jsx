@@ -40,7 +40,8 @@ function TestOmnibox({ items, isActive, activateItem, createItem, onExistingActi
 function renderHarness({
     initialItems = BASE_ITEMS,
     isActive = (item) => item.isOnShoppingList,
-    activateKey = 'isOnShoppingList'
+    activateKey = 'isOnShoppingList',
+    onQueryChange,
 } = {}) {
     const itemsRef = { current: initialItems };
     let idCounter = initialItems.length + 1;
@@ -71,6 +72,7 @@ function renderHarness({
                 activateItem={activateItem}
                 createItem={createItem}
                 onExistingActive={vi.fn()}
+                onQueryChange={onQueryChange}
             />
         );
     };
@@ -332,6 +334,50 @@ describe('SmartOmnibox', () => {
             expect(input.value).toBe(' ');
             expect(input.selectionStart).toBe(1);
             expect(input.selectionEnd).toBe(1);
+        });
+    });
+
+    test('onQueryChange_receives_raw_query_with_trailing_space', async () => {
+        const onQueryChange = vi.fn();
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking Soda', isOnShoppingList: false, isInStock: false },
+                { id: '2', name: 'Baking Powder', isOnShoppingList: false, isInStock: false },
+            ],
+            onQueryChange,
+        });
+
+        fireEvent.change(input, { target: { value: 'Baking' }, nativeEvent: { inputType: 'insertText' } });
+
+        await waitFor(() => {
+            expect(onQueryChange).toHaveBeenLastCalledWith('Baking');
+        });
+
+        fireEvent.change(input, {
+            target: {
+                value: 'Baking ',
+                selectionStart: 7,
+                selectionEnd: 7,
+            },
+            nativeEvent: { inputType: 'insertText' },
+        });
+
+        await waitFor(() => {
+            expect(onQueryChange).toHaveBeenLastCalledWith('Baking ');
+        });
+    });
+
+    test('onQueryChange_preserves_whitespace_only_queries', async () => {
+        const onQueryChange = vi.fn();
+        const { input } = renderHarness({ onQueryChange });
+
+        fireEvent.change(input, {
+            target: { value: ' ', selectionStart: 1, selectionEnd: 1 },
+            nativeEvent: { inputType: 'insertText' },
+        });
+
+        await waitFor(() => {
+            expect(onQueryChange).toHaveBeenLastCalledWith(' ');
         });
     });
 });

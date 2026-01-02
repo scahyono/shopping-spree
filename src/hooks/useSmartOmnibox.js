@@ -19,7 +19,7 @@ export function useSmartOmnibox({
     const skipAutocompleteOnceRef = useRef(false);
 
     useEffect(() => {
-        onQueryChange?.(baseQuery.trim());
+        onQueryChange?.(baseQuery);
     }, [baseQuery, onQueryChange]);
 
     useEffect(() => {
