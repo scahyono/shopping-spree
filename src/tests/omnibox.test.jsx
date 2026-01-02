@@ -287,4 +287,51 @@ describe('SmartOmnibox', () => {
             expect(itemsRef.current.find(item => item.name === 'Banana').isOnShoppingList).toBe(true);
         });
     });
+
+    test('typing_space_should_keep_input_intact', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking Soda', isOnShoppingList: false, isInStock: false },
+                { id: '2', name: 'Baking Powder', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        fireEvent.change(input, { target: { value: 'Baking' }, nativeEvent: { inputType: 'insertText' } });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Baking Soda');
+            expect(input.selectionStart).toBe(6);
+            expect(input.selectionEnd).toBe(11);
+        });
+
+        fireEvent.change(input, {
+            target: {
+                value: 'Baking ',
+                selectionStart: 7,
+                selectionEnd: 7,
+            },
+            nativeEvent: { inputType: 'insertText' },
+        });
+
+        await waitFor(() => {
+            expect(input.value.startsWith('Baking ')).toBe(true);
+            expect(input.selectionStart).toBe(7);
+            expect(input.selectionEnd).toBeGreaterThanOrEqual(7);
+        });
+    });
+
+    test('typing_space_in_empty_input_should_preserve_value', async () => {
+        const { input } = renderHarness({ initialItems: BASE_ITEMS });
+
+        fireEvent.change(input, {
+            target: { value: ' ', selectionStart: 1, selectionEnd: 1 },
+            nativeEvent: { inputType: 'insertText' },
+        });
+
+        await waitFor(() => {
+            expect(input.value).toBe(' ');
+            expect(input.selectionStart).toBe(1);
+            expect(input.selectionEnd).toBe(1);
+        });
+    });
 });

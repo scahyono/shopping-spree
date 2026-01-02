@@ -4,12 +4,13 @@ import { normalizeName, sortByName } from '../utils/omnibox';
 export default function useOmniboxSearch({ items, isActive }) {
     const [query, setQuery] = useState('');
     const normalizedQuery = normalizeName(query);
-    const hasQuery = normalizedQuery.length > 0;
+    const hasQuery = query.length > 0;
+    const hasSearchableQuery = normalizedQuery.length > 0;
 
     const matches = useMemo(() => {
-        if (!hasQuery) return [];
+        if (!hasSearchableQuery) return [];
         return items.filter(item => normalizeName(item.name).includes(normalizedQuery));
-    }, [hasQuery, items, normalizedQuery]);
+    }, [hasSearchableQuery, items, normalizedQuery]);
 
     const sortedMatches = useMemo(() =>
         [...matches].sort((a, b) => {
