@@ -1,10 +1,9 @@
 import { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { StorageService } from '../services/storage';
-import { countSaturdays, getCurrentWeekNumber } from '../utils/dateHelpers';
-import { calculateIncomeActual, calculateWantsTarget, calculateWeeklyRemaining } from '../utils/budgetCalculations';
-import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
+import { calculateWeeklyBalance } from '../utils/budgetCalculations';
+import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, saveFamilyBudget, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
 import buildInfo from '../buildInfo.json';
-import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents } from '../utils/currency';
+import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents, parseCurrencyInput } from '../utils/currency';
 
 const AppContext = createContext();
 
@@ -17,10 +16,8 @@ const DEMO_ITEMS = [
 ];
 
 const DEMO_BUDGET = normalizeBudgetToCents({
-    income: { target: 5000, actual: 3100 }, // 1950 + 1000 + 150
-    needs: { target: 2000, actual: 1950 },
-    future: { target: 1000, actual: 1000 },
-    wants: { target: 2000, actual: 150 } // 5000 - 2000 - 1000
+    currencyVersion: BUDGET_CURRENCY_VERSION,
+    weekly: { target: parseCurrencyInput('200'), actual: parseCurrencyInput('1.50') }
 }).budget;
 
 export function AppProvider({ children }) {
@@ -43,7 +40,7 @@ export function AppProvider({ children }) {
             const safeItems = Array.isArray(loadedItems) ? loadedItems : [];
 
             // DEMO DATA INJECTION
-            if ((safeItems.length === 0) && (!loadedBudget || loadedBudget.income.target === 0)) {
+            if ((safeItems.length === 0) && (!loadedBudget || Number(loadedBudget.weekly?.target) === 0)) {
                 setBudget(DEMO_BUDGET);
                 setItems(DEMO_ITEMS);
             } else {
@@ -110,6 +107,7 @@ export function AppProvider({ children }) {
 
                 if (migrated) {
                     StorageService.saveBudget(normalizedBudget).catch(console.error);
+                    saveFamilyBudget(normalizedBudget).catch(console.error);
                 }
             });
 
@@ -168,11 +166,7 @@ export function AppProvider({ children }) {
     // === ACTIONS ===
 
     const updateBudget = (category, field, value) => {
-        // Validation:
-        // 1. Income Actual is derived (Read-only)
-        // 2. Wants Target is derived (Read-only: Income Target - Needs Target - Future Target)
-        if (category === 'income' && field === 'actual') return;
-        if (category === 'wants' && field === 'target') return;
+        if (category !== 'weekly') return;
 
         const parsedValue = Math.round(Number(value) || 0);
         const metadata = {
@@ -188,40 +182,14 @@ export function AppProvider({ children }) {
                     ...prev.metadata,
                     ...metadata
                 },
-                [category]: {
-                    ...prev[category],
+                weekly: {
+                    ...prev.weekly,
                     [field]: parsedValue
                 }
             };
 
-            // Auto-calculate Income Actual = Sum of other Actuals
-            // Get the provisional values for calculations
-            const needsActual = category === 'needs' && field === 'actual' ? parsedValue : nextBudget.needs.actual;
-            const futureActual = category === 'future' && field === 'actual' ? parsedValue : nextBudget.future.actual;
-            const wantsActual = category === 'wants' && field === 'actual' ? parsedValue : nextBudget.wants.actual;
-
-            nextBudget.income.actual = calculateIncomeActual(needsActual, futureActual, wantsActual);
-
-            // Auto-calculate Wants Target = Income Target - Needs Target - Future Target
-            // We use the NEW values if they are being updated, otherwise current values
-            const incomeTarget = category === 'income' && field === 'target' ? parsedValue : nextBudget.income.target;
-            const needsTarget = category === 'needs' && field === 'target' ? parsedValue : nextBudget.needs.target;
-            const futureTarget = category === 'future' && field === 'target' ? parsedValue : nextBudget.future.target;
-
-            nextBudget.wants.target = calculateWantsTarget(incomeTarget, needsTarget, futureTarget);
-
-            // Sync to Firebase granularly if user is authenticated
             if (currentUser) {
-                // Sync the directly updated field
                 updateBudgetField(category, field, parsedValue).catch(console.error);
-
-                // Sync derived fields
-                if (category === 'needs' || category === 'future' || category === 'wants') {
-                    updateBudgetField('income', 'actual', nextBudget.income.actual).catch(console.error);
-                }
-                if (category === 'income' || category === 'needs' || category === 'future') {
-                    updateBudgetField('wants', 'target', nextBudget.wants.target).catch(console.error);
-                }
             }
 
             return nextBudget;
@@ -364,22 +332,12 @@ export function AppProvider({ children }) {
 
     // === DERIVED STATE ===
 
-    const weeklyWantsRemaining = useMemo(() => {
-        const now = new Date();
-        const saturdays = countSaturdays(now.getFullYear(), now.getMonth());
-        // Avoid division by zero
-        const safeSaturdays = saturdays || 1;
-
-        const monthlyTarget = Number(budget?.wants?.target) || 0;
-        const totalSpent = Number(budget?.wants?.actual) || 0;
-        const currentWeek = getCurrentWeekNumber(now);
-
-        const result = calculateWeeklyRemaining(monthlyTarget, totalSpent, currentWeek, safeSaturdays);
+    const weeklyBudgetState = useMemo(() => {
+        const weeklyBudget = Number(budget?.weekly?.target) || 0;
+        const weeklySpent = Number(budget?.weekly?.actual) || 0;
 
         return {
-            remaining: result.remaining,
-            currentWeek,
-            totalWeeks: safeSaturdays
+            remaining: calculateWeeklyBalance(weeklyBudget, weeklySpent)
         };
     }, [budget]);
 
@@ -399,9 +357,7 @@ export function AppProvider({ children }) {
             deleteItem
         },
         computed: {
-            weeklyWantsRemaining: weeklyWantsRemaining?.remaining || 0,
-            currentWeek: weeklyWantsRemaining?.currentWeek || 1,
-            totalWeeks: weeklyWantsRemaining?.totalWeeks || 4
+            weeklyRemaining: weeklyBudgetState?.remaining || 0
         }
     };
 

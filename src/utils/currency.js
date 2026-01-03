@@ -1,5 +1,5 @@
 export const CURRENCY_SCALE = 100;
-export const BUDGET_CURRENCY_VERSION = 1;
+export const BUDGET_CURRENCY_VERSION = 2;
 
 export function formatCurrency(valueInCents = 0) {
     const numeric = Number(valueInCents);
@@ -21,10 +21,7 @@ export function createDefaultBudget() {
             lastModified: null,
             lastModifiedBy: null
         },
-        income: { target: 0, actual: 0 },
-        needs: { target: 0, actual: 0 },
-        future: { target: 0, actual: 0 },
-        wants: { target: 0, actual: 0 }
+        weekly: { target: 0, actual: 0 }
     };
 }
 
@@ -32,11 +29,20 @@ export function normalizeBudgetToCents(rawBudget) {
     const needsMigration = rawBudget?.currencyVersion !== BUDGET_CURRENCY_VERSION;
     const sourceBudget = rawBudget && typeof rawBudget === 'object' ? rawBudget : createDefaultBudget();
 
+    const isLikelyInCents = (value) => Math.abs(value) >= CURRENCY_SCALE * 20;
+    const weeklyBudget = sourceBudget?.weekly || sourceBudget?.wants || {};
+    const values = [weeklyBudget.target, weeklyBudget.actual].map(Number).filter(Number.isFinite);
+    const hasLikelyCents = needsMigration && values.some(isLikelyInCents);
+
     const normalizeValue = (value) => {
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) return 0;
 
-        return needsMigration ? Math.round(numeric * CURRENCY_SCALE) : Math.round(numeric);
+        if (!needsMigration || hasLikelyCents) return Math.round(numeric);
+
+        return isLikelyInCents(numeric)
+            ? Math.round(numeric)
+            : Math.round(numeric * CURRENCY_SCALE);
     };
 
     const sourceMetadata = sourceBudget?.metadata && typeof sourceBudget.metadata === 'object' ? sourceBudget.metadata : {};
@@ -46,21 +52,9 @@ export function normalizeBudgetToCents(rawBudget) {
             lastModified: typeof sourceMetadata.lastModified === 'string' ? sourceMetadata.lastModified : (typeof sourceBudget.lastModified === 'string' ? sourceBudget.lastModified : null),
             lastModifiedBy: typeof sourceMetadata.lastModifiedBy === 'string' ? sourceMetadata.lastModifiedBy : (typeof sourceBudget.lastModifiedBy === 'string' ? sourceBudget.lastModifiedBy : null)
         },
-        income: {
-            target: normalizeValue(sourceBudget.income?.target ?? 0),
-            actual: normalizeValue(sourceBudget.income?.actual ?? 0)
-        },
-        needs: {
-            target: normalizeValue(sourceBudget.needs?.target ?? 0),
-            actual: normalizeValue(sourceBudget.needs?.actual ?? 0)
-        },
-        future: {
-            target: normalizeValue(sourceBudget.future?.target ?? 0),
-            actual: normalizeValue(sourceBudget.future?.actual ?? 0)
-        },
-        wants: {
-            target: normalizeValue(sourceBudget.wants?.target ?? 0),
-            actual: normalizeValue(sourceBudget.wants?.actual ?? 0)
+        weekly: {
+            target: normalizeValue(weeklyBudget.target ?? 0),
+            actual: normalizeValue(weeklyBudget.actual ?? 0)
         }
     };
 
