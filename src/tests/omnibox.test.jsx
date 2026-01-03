@@ -460,40 +460,47 @@ describe('SmartOmnibox', () => {
             ],
         });
 
-        const typeValue = async (value, { expectExact } = {}) => {
+        let typedValue = '';
+
+        const typeNextChar = async (nextChar, { expectExact = false } = {}) => {
+            typedValue += nextChar;
+            const nextValue = typedValue;
+
             fireEvent.change(input, {
-                target: { value, selectionStart: value.length, selectionEnd: value.length },
+                target: { value: nextValue, selectionStart: nextValue.length, selectionEnd: nextValue.length },
                 nativeEvent: { inputType: 'insertText' },
             });
 
             await waitFor(() => {
+                expect(input.value.toLowerCase().startsWith(nextValue.toLowerCase())).toBe(true);
+                expect(input.selectionStart).toBe(nextValue.length);
+
                 if (expectExact) {
-                    expect(input.value).toBe(value);
-                    expect(input.selectionStart).toBe(value.length);
-                    expect(input.selectionEnd).toBe(value.length);
+                    expect(input.value).toBe(nextValue);
+                    expect(input.selectionEnd).toBe(nextValue.length);
                     return;
                 }
 
-                expect(input.value.toLowerCase().startsWith(value.toLowerCase())).toBe(true);
-                expect(input.selectionStart).toBe(value.length);
+                expect(input.selectionEnd).toBeGreaterThanOrEqual(nextValue.length);
             });
         };
 
-        await typeValue('B');
-        await typeValue('Ba');
-        await typeValue('Bak');
-        await typeValue('Baki');
-        await typeValue('Bakin');
-        await typeValue('Baking');
+        for (const char of 'Baking') {
+            // Type each character individually to mirror real input keystrokes.
+            await typeNextChar(char);
+        }
 
-        await typeValue('Baking ', { expectExact: true });
+        await typeNextChar(' ', { expectExact: true });
 
-        await typeValue('Baking P');
-        await typeValue('Baking Po');
-        await typeValue('Baking Pow');
-        await typeValue('Baking Powd');
-        await typeValue('Baking Powde');
-        await typeValue('Baking Powder');
+        for (const char of 'Powder') {
+            await typeNextChar(char);
+        }
+
+        await waitFor(() => {
+            expect(input.value).toBe('Baking Powder');
+            expect(input.selectionStart).toBe('Baking Powder'.length);
+            expect(input.selectionEnd).toBe('Baking Powder'.length);
+        });
 
         expect(itemsRef.current.find(item => item.name === 'Baking Powder')).toBeUndefined();
 
