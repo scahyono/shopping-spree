@@ -1,27 +1,69 @@
 # Shopping Spree 🛍️
 
-**Shopping is Free (if you budget right)**
+**One weekly number. Full spending control.**
 
-A playful, "Retail Therapy" themed Progressive Web App (PWA) designed to make budgeting fun and shopping guilt-free. Built with **React**, **Vite**, and **Tailwind CSS**.
+Shopping Spree is a simple PWA for managing everyday spending using a **manually set weekly budget**, a **shopping list**, and a **stock checklist**.
 
+No bank sync.  
+No categories.  
+Works with cash, cards, wallets, and vouchers.
+
+---
+
+## How It Works
+
+### 1. Weekly Budget (Manual by Design)
+- You **set or update** one weekly budget number
+- Reset, add, or subtract anytime
+- Budget rolls over if unused
+- A single budget for all payment methods
+
+You control the number.  
+Nothing is automated.
+
+---
+
+### 2. Shopping List
+- Add items before shopping
+- Buy only what’s listed
+- Check off as you go
+- Update the budget manually
+
+---
+
+### 3. Stock Checklist
+- Track what you already have
+- Add items to shopping list as needed 
+- Prevents duplicate buying
+- Reduces waste
+
+---
+
+## The Loop
+
+1. Check **Stock**
+2. Build **List**
+3. Spend within **Weekly Budget**
+4. Review categorization later in your bank app
+
+---
+
+## Why It Works
+
+- Weekly thinking
+- Manual = mindful
+- Payment-agnostic
+- Simple enough to stick with
+
+> Control first. Analysis later.
 ![Desktop View](screenshots/desktop_view.png)
 
-## Features
-
-### 1. The "One Truth" Header
-Always know exactly what you can spend **this week**.
-- **Smart Calculation**: Your "Wants" budget (derived from Income - Needs - Future) is divided by the number of Saturdays in the month.
-- **Rollover Logic**: Unused budget from previous weeks automatically rolls over to the current week.
-- **Details**: Click the header to see your full financial breakdown (Income, Needs, Future, Wants).
-
-![Expanded Budget](screenshots/desktop_view_expanded.png)
-
-### 2. Shop & Stock Flow
+## Shop & Stock Flow
 - **Stock Tab**: Your master inventory (Pantry/Fridge). Search for items or add new ones here.
 - **Shop Tab**: Your active shopping list.
 - **Action**: Moving an item from *Stock* to *Shop* marks it "To Buy". Marking it "Bought" in *Shop* triggers a confetti celebration 🎉.
 
-### 3. Mobile First Design
+## Mobile First Design
 Optimized for mobile use with a thumb-friendly persistent footer and responsive layout.
 
 | Android | iPhone |
