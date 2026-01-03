@@ -6,7 +6,8 @@ Shopping Spree is a simple PWA for managing everyday spending using a **manually
 
 No bank sync.  
 No categories.  
-Works with cash, cards, wallets, and vouchers.
+A single budget tracker for all your cash, cards, wallets, and vouchers.
+Free up balance outside your weekly budget to pay bills (including debt repayment), buffers and savings.
 
 ---
 
@@ -57,11 +58,6 @@ Nothing is automated.
 
 > Control first. Analysis later.
 ![Desktop View](screenshots/desktop_view.png)
-
-## Shop & Stock Flow
-- **Stock Tab**: Your master inventory (Pantry/Fridge). Search for items or add new ones here.
-- **Shop Tab**: Your active shopping list.
-- **Action**: Moving an item from *Stock* to *Shop* marks it "To Buy". Marking it "Bought" in *Shop* triggers a confetti celebration 🎉.
 
 ## Mobile First Design
 Optimized for mobile use with a thumb-friendly persistent footer and responsive layout.
