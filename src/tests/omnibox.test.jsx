@@ -385,6 +385,74 @@ describe('SmartOmnibox', () => {
         });
     });
 
+    test('typing_multiword_item_with_hidden_sibling_should_not_reset_after_space', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking Powder', isOnShoppingList: false, isInStock: true },
+                { id: '2', name: 'Baking Paper', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        fireEvent.change(input, { target: { value: 'Baking' }, nativeEvent: { inputType: 'insertText' } });
+
+        await waitFor(() => {
+            expect(input.value.toLowerCase().startsWith('baking')).toBe(true);
+        });
+
+        fireEvent.change(input, {
+            target: {
+                value: 'Baking ',
+                selectionStart: 7,
+                selectionEnd: 7,
+            },
+            nativeEvent: { inputType: 'insertText' },
+        });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Baking ');
+            expect(input.selectionStart).toBe(7);
+            expect(input.selectionEnd).toBe(7);
+        });
+
+        fireEvent.change(input, {
+            target: {
+                value: 'Baking P',
+                selectionStart: 8,
+                selectionEnd: 8,
+            },
+            nativeEvent: { inputType: 'insertText' },
+        });
+
+        await waitFor(() => {
+            expect(input.value).toBe('Baking P');
+            expect(input.selectionStart).toBe(8);
+            expect(input.selectionEnd).toBe(8);
+        });
+
+        const continueTyping = async (nextValue) => {
+            fireEvent.change(input, {
+                target: { value: nextValue, selectionStart: nextValue.length, selectionEnd: nextValue.length },
+                nativeEvent: { inputType: 'insertText' },
+            });
+
+            await waitFor(() => {
+                expect(input.value.toLowerCase().startsWith(nextValue.toLowerCase())).toBe(true);
+            });
+        };
+
+        await continueTyping('Baking Po');
+        await continueTyping('Baking Pow');
+        await continueTyping('Baking Powd');
+        await continueTyping('Baking Powde');
+        await continueTyping('Baking Powder');
+
+        await waitFor(() => {
+            expect(input.value).toBe('Baking Powder');
+            expect(input.selectionStart).toBe(13);
+            expect(input.selectionEnd).toBe(13);
+        });
+    });
+
     test('onQueryChange_receives_raw_query_with_trailing_space', async () => {
         const onQueryChange = vi.fn();
         const { input } = renderHarness({

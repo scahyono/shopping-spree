@@ -17,6 +17,7 @@ export function useSmartOmnibox({
     const lastBackspaceRef = useRef(false);
     const hadSuggestionRef = useRef(false);
     const skipAutocompleteOnceRef = useRef(false);
+    const skipAutocompleteNextRef = useRef(false);
 
     useEffect(() => {
         onQueryChange?.(baseQuery);
@@ -75,6 +76,7 @@ export function useSmartOmnibox({
         const selectionStart = e.target.selectionStart ?? rawValue.length;
         const selectionEnd = e.target.selectionEnd ?? selectionStart;
         const manualInput = rawValue.slice(0, selectionStart);
+        const endsWithWhitespace = /\s$/.test(manualInput);
         const inputType = e.inputType || e.nativeEvent?.inputType;
         const isDelete = inputType === 'deleteContentBackward' || lastBackspaceRef.current;
         const isInsert = inputType?.startsWith('insert') ?? !isDelete;
@@ -84,13 +86,19 @@ export function useSmartOmnibox({
             skipAutocompleteOnceRef.current = true;
             hadSuggestionRef.current = false;
         }
+        if (isInsert && endsWithWhitespace) {
+            skipAutocompleteNextRef.current = true;
+        }
         lastBackspaceRef.current = false;
 
         const shouldResumeAutocomplete = isInsert || rawValue === '';
         const nextPaused = isDelete ? true : (shouldResumeAutocomplete ? false : autocompletePaused);
-        const skipThisChange = skipAutocompleteOnceRef.current && isInsert;
+        const skipThisChange = (skipAutocompleteOnceRef.current && isInsert) || skipAutocompleteNextRef.current;
         if (skipThisChange) {
             skipAutocompleteOnceRef.current = false;
+            if (!endsWithWhitespace) {
+                skipAutocompleteNextRef.current = false;
+            }
         }
 
         setAutocompletePaused(nextPaused);
