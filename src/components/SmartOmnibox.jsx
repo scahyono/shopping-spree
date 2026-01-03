@@ -15,7 +15,15 @@ export default function SmartOmnibox({
 }) {
     const inputRef = useRef(null);
 
-    const { value, handleChange, handleKeyDown, handleSubmit, clearInput } = useSmartOmnibox({
+    const {
+        value,
+        handleChange,
+        handleKeyDown,
+        handleSubmit,
+        handleCompositionStart,
+        handleCompositionEnd,
+        clearInput,
+    } = useSmartOmnibox({
         items,
         isActive,
         activateItem,
@@ -36,6 +44,8 @@ export default function SmartOmnibox({
                     className="w-full bg-white rounded-xl py-3 pl-10 pr-28 shadow-sm focus:ring-2 focus:ring-brand-500 outline-none"
                     value={value}
                     onChange={handleChange}
+                    onCompositionStart={handleCompositionStart}
+                    onCompositionEnd={handleCompositionEnd}
                     onKeyDown={handleKeyDown}
                     aria-label={placeholder}
                 />

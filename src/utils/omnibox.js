@@ -3,6 +3,8 @@ export function normalizeName(value) {
 }
 
 export function findBestSuggestion(items, rawInput) {
+    if (rawInput && /\s$/.test(rawInput)) return null;
+
     const normalizedInput = normalizeName(rawInput);
     if (!normalizedInput) return null;
 

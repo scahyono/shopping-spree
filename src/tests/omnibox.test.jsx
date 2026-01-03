@@ -13,7 +13,7 @@ const BASE_ITEMS = [
 function TestOmnibox({ items, isActive, activateItem, createItem, onExistingActive, onQueryChange }) {
     const inputRef = useRef(null);
 
-    const { value, handleChange, handleKeyDown, handleSubmit } = useSmartOmnibox({
+    const { value, handleChange, handleKeyDown, handleSubmit, handleCompositionStart, handleCompositionEnd } = useSmartOmnibox({
         items,
         isActive,
         activateItem,
@@ -31,6 +31,8 @@ function TestOmnibox({ items, isActive, activateItem, createItem, onExistingActi
                 aria-label="Search or add item"
                 value={value}
                 onChange={handleChange}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
                 onKeyDown={handleKeyDown}
             />
         </form>
@@ -80,7 +82,103 @@ function renderHarness({
     return { ...utils, input, itemsRef };
 }
 
+function typeText(input, text) {
+    for (const char of text) {
+        const selectionStart = input.selectionStart ?? input.value.length;
+        const selectionEnd = input.selectionEnd ?? selectionStart;
+        const nextValue = `${input.value.slice(0, selectionStart)}${char}${input.value.slice(selectionEnd)}`;
+
+        fireEvent.change(input, {
+            target: {
+                value: nextValue,
+                selectionStart: selectionStart + 1,
+                selectionEnd: selectionStart + 1,
+            },
+            nativeEvent: { inputType: 'insertText' },
+        });
+    }
+}
+
+async function typeSlowly(input, text) {
+    input.focus();
+    for (const char of text) {
+        const selectionStart = input.selectionStart ?? input.value.length;
+        const selectionEnd = input.selectionEnd ?? selectionStart;
+        const nextValue = `${input.value.slice(0, selectionStart)}${char}${input.value.slice(selectionEnd)}`;
+
+        fireEvent.input(input, {
+            target: {
+                value: nextValue,
+                selectionStart: selectionStart + 1,
+                selectionEnd: selectionStart + 1,
+            },
+            nativeEvent: { inputType: 'insertText', data: char },
+        });
+
+        await waitFor(() => expect(input.value.length).toBeGreaterThan(0));
+    }
+}
+
 describe('SmartOmnibox', () => {
+    test('composition_space_should_keep_full_prefix_when_matching_item_exists', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking paper', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        fireEvent.compositionStart(input);
+
+        fireEvent.change(input, {
+            target: { value: 'Baking', selectionStart: 6, selectionEnd: 6 },
+            nativeEvent: { isComposing: true, data: 'Baking', inputType: 'insertCompositionText' },
+        });
+
+        await waitFor(() => expect(input).toHaveValue('Baking'));
+
+        fireEvent.compositionEnd(input, { data: 'Baking' });
+
+        fireEvent.input(input, {
+            target: { value: 'Baking ', selectionStart: 7, selectionEnd: 7 },
+            nativeEvent: { inputType: 'insertText', data: ' ' },
+        });
+
+        await waitFor(() => {
+            expect(input).toHaveValue('Baking ');
+            expect(input.selectionStart).toBe(7);
+            expect(input.selectionEnd).toBe(7);
+        });
+    });
+
+    test('typing_existing_prefix_with_space_should_not_drop_characters', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking paper', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        await typeSlowly(input, 'Baking ');
+
+        expect(input.value).toBe('Baking ');
+        expect(input.selectionStart).toBe(7);
+        expect(input.selectionEnd).toBe(7);
+    });
+
+    test('typing_full_prefix_with_space_keeps_text_visible', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking paper', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        typeText(input, 'Baking ');
+
+        await waitFor(() => {
+            expect(input.value.toLowerCase().startsWith('baking ')).toBe(true);
+            expect(input.selectionStart).toBeGreaterThanOrEqual(7);
+        });
+    });
+
     test('should_autocomplete_and_select_suffix', async () => {
         const { input } = renderHarness();
 
