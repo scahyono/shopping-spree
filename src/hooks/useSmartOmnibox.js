@@ -92,7 +92,9 @@ export function useSmartOmnibox({
         lastBackspaceRef.current = false;
 
         const shouldResumeAutocomplete = isInsert || rawValue === '';
-        const nextPaused = isDelete ? true : (shouldResumeAutocomplete ? false : autocompletePaused);
+        const nextPaused = (isDelete || endsWithWhitespace)
+            ? true
+            : (shouldResumeAutocomplete ? false : autocompletePaused);
         const skipThisChange = (skipAutocompleteOnceRef.current && isInsert) || skipAutocompleteNextRef.current;
         if (skipThisChange) {
             skipAutocompleteOnceRef.current = false;

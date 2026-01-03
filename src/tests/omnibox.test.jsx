@@ -453,6 +453,59 @@ describe('SmartOmnibox', () => {
         });
     });
 
+    test('typing_and_creating_new_item_with_hidden_sibling_preserves_progress', async () => {
+        const { input, itemsRef } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking Paper', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        const typeValue = async (value, { expectExact } = {}) => {
+            fireEvent.change(input, {
+                target: { value, selectionStart: value.length, selectionEnd: value.length },
+                nativeEvent: { inputType: 'insertText' },
+            });
+
+            await waitFor(() => {
+                if (expectExact) {
+                    expect(input.value).toBe(value);
+                    expect(input.selectionStart).toBe(value.length);
+                    expect(input.selectionEnd).toBe(value.length);
+                    return;
+                }
+
+                expect(input.value.toLowerCase().startsWith(value.toLowerCase())).toBe(true);
+                expect(input.selectionStart).toBe(value.length);
+            });
+        };
+
+        await typeValue('B');
+        await typeValue('Ba');
+        await typeValue('Bak');
+        await typeValue('Baki');
+        await typeValue('Bakin');
+        await typeValue('Baking');
+
+        await typeValue('Baking ', { expectExact: true });
+
+        await typeValue('Baking P');
+        await typeValue('Baking Po');
+        await typeValue('Baking Pow');
+        await typeValue('Baking Powd');
+        await typeValue('Baking Powde');
+        await typeValue('Baking Powder');
+
+        expect(itemsRef.current.find(item => item.name === 'Baking Powder')).toBeUndefined();
+
+        fireEvent.keyDown(input, { key: 'Enter' });
+
+        await waitFor(() => {
+            const created = itemsRef.current.find(item => item.name === 'Baking Powder');
+            expect(created).toBeDefined();
+            expect(created.isOnShoppingList).toBe(true);
+        });
+    });
+
     test('onQueryChange_receives_raw_query_with_trailing_space', async () => {
         const onQueryChange = vi.fn();
         const { input } = renderHarness({
