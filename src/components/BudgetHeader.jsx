@@ -154,18 +154,20 @@ export default function BudgetHeader() {
 
     if (loading) return <div className="h-24 bg-brand-500 animate-pulse" />;
 
-    const remaining = computed.weeklyWantsRemaining;
+    const remaining = computed.weeklyRemaining;
     const isNegative = remaining < 0;
     const formattedRemaining = formatCurrency(remaining);
+    const weeklyBudget = formatCurrency(budget?.weekly?.target ?? 0);
+    const weeklySpent = formatCurrency(budget?.weekly?.actual ?? 0);
 
     return (
         <>
             <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
                 <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
                     <div className="flex flex-col gap-1">
-                        <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Wants</div>
+                        <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Budget</div>
                         <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
-                            Week {computed.currentWeek} / {computed.totalWeeks}
+                            Budget: {weeklyBudget}
                         </div>
                     </div>
                     {/* The Single Truth */}
@@ -178,11 +180,14 @@ export default function BudgetHeader() {
                             {formattedRemaining}
                         </div>
 
+                        <div className="text-xs opacity-70">Remaining</div>
+
                         <div className="flex justify-center -mt-1 opacity-50">
                             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                     </button>
-                    <div className="flex justify-end items-start text-right">
+                    <div className="flex flex-col items-end text-right gap-1">
+                        <div className="text-xs opacity-80">Spent: {weeklySpent}</div>
                         <SyncControls compact />
                     </div>
                 </div>
@@ -205,49 +210,45 @@ export default function BudgetHeader() {
                                 ) : null}
                             </div>
                         </div>
-                        {['income', 'needs', 'future', 'wants'].map(cat => (
-                            <div key={cat} className="flex items-center justify-between">
-                                <span className="capitalize font-medium opacity-90">{cat}</span>
-                                <div className="flex gap-4 text-right">
-                                    <div>
-                                        <div className="text-xs opacity-60">Target</div>
-                                        <input
-                                            ref={(el) => { inputRefs.current[getFieldKey(cat, 'target')] = el; }}
-                                            type="number"
-                                            className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'wants' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={isFieldActive(cat, 'target') ? pendingValue : formatCurrency(budget[cat].target)}
-                                            onChange={(e) => handleInputChange(cat, 'target', e.target.value)}
-                                            onFocus={() => handleInputFocus(cat, 'target')}
-                                            onBlur={handleInputBlur}
-                                            onClick={(e) => e.stopPropagation()}
-                                            disabled={cat === 'wants'}
-                                            placeholder={formatCurrency(budget[cat].target)}
-                                        />
-                                    </div>
-                                    <div className="border-l border-brand-500 pl-4">
-                                        <div className="text-xs opacity-60">Actual</div>
-                                        <input
-                                            ref={(el) => { inputRefs.current[getFieldKey(cat, 'actual')] = el; }}
-                                            type="number"
-                                            className={`w-20 bg-brand-700 text-white text-right rounded px-1 focus:ring-2 focus:ring-white outline-none ${cat === 'income' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            value={isFieldActive(cat, 'actual') ? pendingValue : formatCurrency(budget[cat].actual)}
-                                            onChange={(e) => handleInputChange(cat, 'actual', e.target.value)}
-                                            onFocus={() => handleInputFocus(cat, 'actual')}
-                                            onBlur={handleInputBlur}
-                                            onClick={(e) => e.stopPropagation()}
-                                            disabled={cat === 'income'}
-                                            placeholder={formatCurrency(budget[cat].actual)}
-                                        />
-                                    </div>
-                                    <div className="border-l border-brand-500 pl-4">
-                                        <div className="text-xs opacity-60">Remaining</div>
-                                        <div className={`w-20 text-right font-medium ${budget[cat].target - budget[cat].actual < 0 ? 'text-red-300' : 'text-white'}`}>
-                                            {formatCurrency(budget[cat].target - budget[cat].actual)}
-                                        </div>
-                                    </div>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-semibold">Weekly Budget</span>
+                                    <span className="text-[11px] opacity-80">Set your limit for the week</span>
                                 </div>
+                                <input
+                                    ref={(el) => { inputRefs.current[getFieldKey('weekly', 'target')] = el; }}
+                                    type="number"
+                                    className="w-28 bg-brand-700 text-white text-right rounded px-2 py-1 focus:ring-2 focus:ring-white outline-none"
+                                    value={isFieldActive('weekly', 'target') ? pendingValue : formatCurrency(budget.weekly.target)}
+                                    onChange={(e) => handleInputChange('weekly', 'target', e.target.value)}
+                                    onFocus={() => handleInputFocus('weekly', 'target')}
+                                    onBlur={handleInputBlur}
+                                    onClick={(e) => e.stopPropagation()}
+                                    placeholder={formatCurrency(budget.weekly.target)}
+                                />
                             </div>
-                        ))}
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-semibold">Spent This Week</span>
+                                    <span className="text-[11px] opacity-80">Track what you used</span>
+                                </div>
+                                <input
+                                    ref={(el) => { inputRefs.current[getFieldKey('weekly', 'actual')] = el; }}
+                                    type="number"
+                                    className="w-28 bg-brand-700 text-white text-right rounded px-2 py-1 focus:ring-2 focus:ring-white outline-none"
+                                    value={isFieldActive('weekly', 'actual') ? pendingValue : formatCurrency(budget.weekly.actual)}
+                                    onChange={(e) => handleInputChange('weekly', 'actual', e.target.value)}
+                                    onFocus={() => handleInputFocus('weekly', 'actual')}
+                                    onBlur={handleInputBlur}
+                                    onClick={(e) => e.stopPropagation()}
+                                    placeholder={formatCurrency(budget.weekly.actual)}
+                                />
+                            </div>
+                            <div className="flex justify-end text-sm font-semibold text-white">
+                                <span className={isNegative ? 'text-red-200' : 'text-white'}>Remaining: {formattedRemaining}</span>
+                            </div>
+                        </div>
                         <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">
                             <div className="text-sm font-semibold text-white flex flex-col items-end gap-2 text-right w-full">
                                 <div className="flex flex-wrap items-center gap-2 justify-end">

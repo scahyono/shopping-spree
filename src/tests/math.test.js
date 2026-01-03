@@ -1,67 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { calculateWantsTarget, calculateIncomeActual, calculateWeeklyRemaining } from '../utils/budgetCalculations';
+import { calculateWeeklyBalance } from '../utils/budgetCalculations';
 import { countSaturdays, getCurrentWeekNumber } from '../utils/dateHelpers';
 
 describe('Budget Calculations', () => {
-    describe('calculateWantsTarget', () => {
-        it('should calculate wants target correctly', () => {
-            const income = 5000;
-            const needs = 2000;
-            const future = 1000;
-            // 5000 - 2000 - 1000 = 2000
-            expect(calculateWantsTarget(income, needs, future)).toBe(2000);
+    describe('calculateWeeklyBalance', () => {
+        it('should subtract spending from the weekly budget', () => {
+            expect(calculateWeeklyBalance(400, 150)).toBe(250);
         });
 
-        it('should handle zero values', () => {
-            expect(calculateWantsTarget(0, 0, 0)).toBe(0);
-        });
-
-        it('should handle negative result (over budget)', () => {
-            expect(calculateWantsTarget(3000, 2000, 1500)).toBe(-500);
-        });
-    });
-
-    describe('calculateIncomeActual', () => {
-        it('should sum up actuals correctly', () => {
-            expect(calculateIncomeActual(100, 200, 300)).toBe(600);
-        });
-    });
-
-    describe('calculateWeeklyRemaining', () => {
-        it('should calculate remaining for week 1 with no spending', () => {
-            // Monthly Target: 400, Total Weeks: 4
-            // Weekly Limit: 100
-            // Week 1 Cumulative Allowed: 100
-            // Spent: 0
-            // Remaining: 100
-            const result = calculateWeeklyRemaining(400, 0, 1, 4);
-            expect(result.remaining).toBe(100);
-            expect(result.weeklyLimit).toBe(100);
-        });
-
-        it('should calculate remaining for week 2 with partial spending', () => {
-            // Monthly Target: 400, Total Weeks: 4
-            // Weekly Limit: 100
-            // Week 2 Cumulative Allowed: 200
-            // Spent: 80 (Week 1 spent likely)
-            // Remaining: 120 (20 rollover + 100 for this week)
-            const result = calculateWeeklyRemaining(400, 80, 2, 4);
-            expect(result.remaining).toBe(120);
-        });
-
-        it('should handle zero total weeks (divide by zero protection)', () => {
-            // Should fallback to 1 week
-            const result = calculateWeeklyRemaining(100, 0, 1, 0);
-            expect(result.weeklyLimit).toBe(100);
-        });
-
-        it('should handle overspending', () => {
-            // Monthly Target: 400
-            // Week 1
-            // Spent: 150
-            // Remaining: -50
-            const result = calculateWeeklyRemaining(400, 150, 1, 4);
-            expect(result.remaining).toBe(-50);
+        it('should allow overspending scenarios', () => {
+            expect(calculateWeeklyBalance(200, 260)).toBe(-60);
         });
     });
 });
