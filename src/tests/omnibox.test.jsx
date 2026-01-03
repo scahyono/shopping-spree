@@ -80,7 +80,39 @@ function renderHarness({
     return { ...utils, input, itemsRef };
 }
 
+function typeText(input, text) {
+    for (const char of text) {
+        const selectionStart = input.selectionStart ?? input.value.length;
+        const selectionEnd = input.selectionEnd ?? selectionStart;
+        const nextValue = `${input.value.slice(0, selectionStart)}${char}${input.value.slice(selectionEnd)}`;
+
+        fireEvent.change(input, {
+            target: {
+                value: nextValue,
+                selectionStart: selectionStart + 1,
+                selectionEnd: selectionStart + 1,
+            },
+            nativeEvent: { inputType: 'insertText' },
+        });
+    }
+}
+
 describe('SmartOmnibox', () => {
+    test('typing_full_prefix_with_space_keeps_text_visible', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking paper', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        typeText(input, 'Baking ');
+
+        await waitFor(() => {
+            expect(input.value.toLowerCase().startsWith('baking ')).toBe(true);
+            expect(input.selectionStart).toBeGreaterThanOrEqual(7);
+        });
+    });
+
     test('should_autocomplete_and_select_suffix', async () => {
         const { input } = renderHarness();
 
