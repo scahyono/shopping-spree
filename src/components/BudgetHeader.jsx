@@ -6,7 +6,7 @@ import buildInfo from '../buildInfo.json';
 import { formatCurrency, parseCurrencyInput } from '../utils/currency';
 
 export default function BudgetHeader() {
-    const { computed, actions, loading } = useApp();
+    const { computed, actions, loading, currentUser } = useApp();
     const [expanded, setExpanded] = useState(false);
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
     const [cacheStatus, setCacheStatus] = useState('');
@@ -162,6 +162,7 @@ export default function BudgetHeader() {
     const budgetAmount = computed.weeklyRemaining;
     const isNegative = budgetAmount < 0;
     const formattedBudget = formatCurrency(budgetAmount);
+    const userLabel = currentUser ? (currentUser.displayName || currentUser.email || '') : '';
 
     const budgetHistory = Array.isArray(computed.userBudget?.history) ? computed.userBudget.history : [];
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -182,8 +183,13 @@ export default function BudgetHeader() {
         <>
             <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
                 <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
-                    <div className="flex flex-col gap-1" aria-hidden>
+                    <div className="flex flex-col gap-0.5">
                         <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Budget</div>
+                        {userLabel ? (
+                            <div className="text-sm font-semibold leading-tight text-white truncate" title={userLabel}>
+                                {userLabel}
+                            </div>
+                        ) : null}
                     </div>
                     {/* The Single Truth */}
                     <button

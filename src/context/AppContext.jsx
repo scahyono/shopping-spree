@@ -227,7 +227,10 @@ export function AppProvider({ children }) {
             };
 
             if (currentUser) {
-                updateBudgetField(budgetOwnerId, category, field, parsedValue).catch(console.error);
+                updateBudgetField(budgetOwnerId, category, field, parsedValue, {
+                    history: nextUserBudget.history,
+                    metadata
+                }).catch(console.error);
             }
 
             return nextBudget;
