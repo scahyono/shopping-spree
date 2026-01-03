@@ -136,19 +136,25 @@ function buildBudgetMetadata(user) {
 }
 
 // Granular update for a single budget field
-export async function updateBudgetField(category, field, value) {
+export async function updateBudgetField(ownerId, category, field, value, options = {}) {
     const { database, auth } = initializeFirebase();
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const metadata = buildBudgetMetadata(user);
+    const metadata = options.metadata ?? buildBudgetMetadata(user);
 
-    await update(ref(database, 'family/shared'), {
-        'budget/currencyVersion': BUDGET_CURRENCY_VERSION,
-        [`budget/${category}/${field}`]: value,
-        'budget/metadata/lastModified': metadata.lastModified,
-        'budget/metadata/lastModifiedBy': metadata.lastModifiedBy
-    });
+    const updates = {
+        [`budget/byUser/${ownerId}/currencyVersion`]: BUDGET_CURRENCY_VERSION,
+        [`budget/byUser/${ownerId}/${category}/${field}`]: value,
+        [`budget/byUser/${ownerId}/metadata/lastModified`]: metadata.lastModified,
+        [`budget/byUser/${ownerId}/metadata/lastModifiedBy`]: metadata.lastModifiedBy
+    };
+
+    if (Array.isArray(options.history)) {
+        updates[`budget/byUser/${ownerId}/history`] = options.history;
+    }
+
+    await update(ref(database, 'family/shared'), updates);
 }
 
 // Granular update for a single item

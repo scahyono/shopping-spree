@@ -1,5 +1,5 @@
 import { getCurrentUser, loadFamilyData, saveFamilyBudget, saveFamilyItems } from './firebase';
-import { createDefaultBudget, normalizeBudgetToCents } from '../utils/currency';
+import { LOCAL_BUDGET_OWNER_ID, createDefaultBudget, normalizeBudgetToCents } from '../utils/currency';
 
 const STORAGE_KEYS = {
     BUDGET: 'shopping_spree_budget',
@@ -56,8 +56,9 @@ export const StorageService = {
     // === BUDGET ===
     getBudget: async () => {
         // Always read from localStorage first (offline-first)
+        const ownerId = getCurrentUser()?.uid ?? LOCAL_BUDGET_OWNER_ID;
         const localBudgetRaw = getLocal(STORAGE_KEYS.BUDGET, createDefaultBudget());
-        const { budget: localBudget, migrated: localMigrated } = normalizeBudgetToCents(localBudgetRaw);
+        const { budget: localBudget, migrated: localMigrated } = normalizeBudgetToCents(localBudgetRaw, ownerId);
 
         if (localMigrated) {
             setLocal(STORAGE_KEYS.BUDGET, localBudget);
@@ -68,7 +69,7 @@ export const StorageService = {
             try {
                 const familyData = await loadFamilyData();
                 if (familyData && familyData.budget) {
-                    const { budget: normalizedBudget, migrated } = normalizeBudgetToCents(familyData.budget);
+                    const { budget: normalizedBudget, migrated } = normalizeBudgetToCents(familyData.budget, ownerId);
                     // Merge cloud data with local (cloud wins)
                     setLocal(STORAGE_KEYS.BUDGET, normalizedBudget);
 
@@ -87,7 +88,8 @@ export const StorageService = {
         return localBudget;
     },
     saveBudget: async (budget) => {
-        const { budget: normalizedBudget } = normalizeBudgetToCents(budget);
+        const ownerId = getCurrentUser()?.uid ?? LOCAL_BUDGET_OWNER_ID;
+        const { budget: normalizedBudget } = normalizeBudgetToCents(budget, ownerId);
 
         // Always save to localStorage first (offline-first)
         setLocal(STORAGE_KEYS.BUDGET, normalizedBudget);
