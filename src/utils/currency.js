@@ -2,6 +2,7 @@ import { calculateWeeklyBalance } from './budgetCalculations';
 
 export const CURRENCY_SCALE = 100;
 export const BUDGET_CURRENCY_VERSION = 3;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function formatCurrency(valueInCents = 0) {
     const numeric = Number(valueInCents);
@@ -23,6 +24,7 @@ export function createDefaultBudget() {
             lastModified: null,
             lastModifiedBy: null
         },
+        history: [],
         weekly: { remaining: 0 }
     };
 }
@@ -56,12 +58,29 @@ export function normalizeBudgetToCents(rawBudget) {
         return calculateWeeklyBalance(Number(weeklyBudget.target) || 0, Number(weeklyBudget.actual) || 0);
     };
 
+    const history = Array.isArray(sourceBudget.history) ? sourceBudget.history : [];
+    const thirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
+    const normalizedHistory = history
+        .map((entry) => ({
+            id: entry?.id ?? `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+            timestamp: entry?.timestamp ?? null,
+            change: Math.round(Number(entry?.change) || 0),
+            method: typeof entry?.method === 'string' ? entry.method : 'set',
+            previous: Math.round(Number(entry?.previous) || 0),
+            next: Math.round(Number(entry?.next) || 0)
+        }))
+        .filter((entry) => {
+            const timestamp = Date.parse(entry.timestamp);
+            return Number.isFinite(timestamp) && timestamp >= thirtyDaysAgo;
+        });
+
     const normalized = {
         currencyVersion: BUDGET_CURRENCY_VERSION,
         metadata: {
             lastModified: typeof sourceMetadata.lastModified === 'string' ? sourceMetadata.lastModified : (typeof sourceBudget.lastModified === 'string' ? sourceBudget.lastModified : null),
             lastModifiedBy: typeof sourceMetadata.lastModifiedBy === 'string' ? sourceMetadata.lastModifiedBy : (typeof sourceBudget.lastModifiedBy === 'string' ? sourceBudget.lastModifiedBy : null)
         },
+        history: normalizedHistory,
         weekly: {
             remaining: normalizeValue(deriveRemaining())
         }

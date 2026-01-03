@@ -132,7 +132,7 @@ export default function BudgetHeader() {
         if (actionType === 'add') nextValue = baseValue + amount;
         if (actionType === 'sub') nextValue = baseValue - amount;
 
-        actions.updateBudget(category, field, nextValue);
+        actions.updateBudget(category, field, nextValue, { method: actionType, change: nextValue - baseValue });
         setPendingValue('');
 
         const inputEl = inputRefs.current[getFieldKey(category, field)];
@@ -162,17 +162,28 @@ export default function BudgetHeader() {
     const budgetAmount = computed.weeklyRemaining;
     const isNegative = budgetAmount < 0;
     const formattedBudget = formatCurrency(budgetAmount);
-    const weeklyBudget = formatCurrency(budget?.weekly?.remaining ?? 0);
+
+    const budgetHistory = Array.isArray(budget?.history) ? budget.history : [];
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const recentHistory = budgetHistory
+        .filter((entry) => {
+            const timestamp = Date.parse(entry?.timestamp);
+            return Number.isFinite(timestamp) && timestamp >= thirtyDaysAgo;
+        })
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const formatChange = (change = 0) => {
+        const numeric = Number(change) || 0;
+        const prefix = numeric >= 0 ? '+' : '−';
+        return `${prefix}${formatCurrency(Math.abs(numeric))}`;
+    };
 
     return (
         <>
             <header className="bg-brand-500 text-white shadow-md z-10 transition-all duration-300 relative">
                 <div className="px-4 pt-3 pb-2 grid grid-cols-[1fr_auto_1fr] items-center">
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1" aria-hidden>
                         <div className="opacity-80 text-xs font-medium uppercase tracking-wider">Weekly Budget</div>
-                        <div className="bg-brand-600 px-2 py-0.5 rounded text-xs font-medium opacity-90 w-fit">
-                            Budget: {weeklyBudget}
-                        </div>
                     </div>
                     {/* The Single Truth */}
                     <button
@@ -233,6 +244,34 @@ export default function BudgetHeader() {
                             </div>
                             <div className="flex justify-end text-sm font-semibold text-white">
                                 <span className={isNegative ? 'text-red-200' : 'text-white'}>Budget: {formattedBudget}</span>
+                            </div>
+                            <div className="pt-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="font-semibold">Budget History</span>
+                                        <span className="text-[11px] opacity-80">Last 30 days</span>
+                                    </div>
+                                </div>
+                                <div className="bg-brand-700/60 rounded-lg border border-brand-500/60 divide-y divide-brand-500/60">
+                                    {recentHistory.length === 0 ? (
+                                        <div className="px-3 py-2 text-sm text-brand-100">No budget changes recorded in the last 30 days.</div>
+                                    ) : (
+                                        recentHistory.map((entry) => (
+                                            <div key={entry.id} className="px-3 py-2 flex items-start justify-between gap-3">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-semibold text-white">{formatTimestamp(entry.timestamp)}</span>
+                                                    <span className="text-[11px] text-brand-200 capitalize">{entry.method} update</span>
+                                                </div>
+                                                <div className="text-right flex flex-col items-end gap-0.5">
+                                                    <span className={`text-sm font-semibold ${entry.change < 0 ? 'text-red-100' : 'text-green-100'}`}>
+                                                        {formatChange(entry.change)}
+                                                    </span>
+                                                    <span className="text-[11px] text-brand-200">Budget: {formatCurrency(entry.next)}</span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="mt-4 pt-4 border-t border-brand-500/60 flex justify-end">

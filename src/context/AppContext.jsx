@@ -16,7 +16,7 @@ const DEMO_ITEMS = [
 
 const DEMO_BUDGET = normalizeBudgetToCents({
     currencyVersion: BUDGET_CURRENCY_VERSION,
-    weekly: { remaining: parseCurrencyInput('198.50') }
+    weekly: { remaining: parseCurrencyInput('100') }
 }).budget;
 
 export function AppProvider({ children }) {
@@ -164,7 +164,7 @@ export function AppProvider({ children }) {
 
     // === ACTIONS ===
 
-    const updateBudget = (category, field, value) => {
+    const updateBudget = (category, field, value, options = {}) => {
         if (category !== 'weekly') return;
 
         const parsedValue = Math.round(Number(value) || 0);
@@ -174,6 +174,17 @@ export function AppProvider({ children }) {
         };
 
         setBudget(prev => {
+            const previousValue = Number(prev?.weekly?.[field]) || 0;
+            const delta = Number.isFinite(Number(options.change))
+                ? Math.round(Number(options.change))
+                : parsedValue - previousValue;
+            const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+            const existingHistory = Array.isArray(prev?.history) ? prev.history : [];
+            const recentHistory = existingHistory.filter((entry) => {
+                const timestamp = Date.parse(entry?.timestamp);
+                return Number.isFinite(timestamp) && timestamp >= thirtyDaysAgo;
+            });
+
             const nextBudget = {
                 ...prev,
                 currencyVersion: prev.currencyVersion ?? BUDGET_CURRENCY_VERSION,
@@ -181,6 +192,17 @@ export function AppProvider({ children }) {
                     ...prev.metadata,
                     ...metadata
                 },
+                history: [
+                    ...recentHistory,
+                    {
+                        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+                        timestamp: new Date().toISOString(),
+                        change: delta,
+                        method: options.method ?? 'set',
+                        previous: previousValue,
+                        next: parsedValue
+                    }
+                ],
                 weekly: {
                     ...prev.weekly,
                     [field]: parsedValue
