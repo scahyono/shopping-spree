@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 import { getDatabase, get, off, onValue, ref, update } from 'firebase/database';
+import { BUDGET_CURRENCY_VERSION } from '../utils/currency';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDks3_CoJfEpj2bqTCGeQZhGibXgY9n9l8",
@@ -143,6 +144,7 @@ export async function updateBudgetField(category, field, value) {
     const metadata = buildBudgetMetadata(user);
 
     await update(ref(database, 'family/shared'), {
+        'budget/currencyVersion': BUDGET_CURRENCY_VERSION,
         [`budget/${category}/${field}`]: value,
         'budget/metadata/lastModified': metadata.lastModified,
         'budget/metadata/lastModifiedBy': metadata.lastModifiedBy

@@ -29,15 +29,23 @@ export function normalizeBudgetToCents(rawBudget) {
     const needsMigration = rawBudget?.currencyVersion !== BUDGET_CURRENCY_VERSION;
     const sourceBudget = rawBudget && typeof rawBudget === 'object' ? rawBudget : createDefaultBudget();
 
+    const isLikelyInCents = (value) => Math.abs(value) >= CURRENCY_SCALE * 20;
+    const weeklyBudget = sourceBudget?.weekly || sourceBudget?.wants || {};
+    const values = [weeklyBudget.target, weeklyBudget.actual].map(Number).filter(Number.isFinite);
+    const hasLikelyCents = needsMigration && values.some(isLikelyInCents);
+
     const normalizeValue = (value) => {
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) return 0;
 
-        return needsMigration ? Math.round(numeric * CURRENCY_SCALE) : Math.round(numeric);
+        if (!needsMigration || hasLikelyCents) return Math.round(numeric);
+
+        return isLikelyInCents(numeric)
+            ? Math.round(numeric)
+            : Math.round(numeric * CURRENCY_SCALE);
     };
 
     const sourceMetadata = sourceBudget?.metadata && typeof sourceBudget.metadata === 'object' ? sourceBudget.metadata : {};
-    const weeklyBudget = sourceBudget?.weekly || sourceBudget?.wants || {};
     const normalized = {
         currencyVersion: BUDGET_CURRENCY_VERSION,
         metadata: {

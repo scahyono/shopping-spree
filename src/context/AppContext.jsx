@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { StorageService } from '../services/storage';
 import { calculateWeeklyBalance } from '../utils/budgetCalculations';
-import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
+import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, saveFamilyBudget, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
 import buildInfo from '../buildInfo.json';
-import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents } from '../utils/currency';
+import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents, parseCurrencyInput } from '../utils/currency';
 
 const AppContext = createContext();
 
@@ -16,7 +16,8 @@ const DEMO_ITEMS = [
 ];
 
 const DEMO_BUDGET = normalizeBudgetToCents({
-    weekly: { target: 2000, actual: 150 }
+    currencyVersion: BUDGET_CURRENCY_VERSION,
+    weekly: { target: parseCurrencyInput('200'), actual: parseCurrencyInput('1.50') }
 }).budget;
 
 export function AppProvider({ children }) {
@@ -106,6 +107,7 @@ export function AppProvider({ children }) {
 
                 if (migrated) {
                     StorageService.saveBudget(normalizedBudget).catch(console.error);
+                    saveFamilyBudget(normalizedBudget).catch(console.error);
                 }
             });
 
