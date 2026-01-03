@@ -13,7 +13,7 @@ const BASE_ITEMS = [
 function TestOmnibox({ items, isActive, activateItem, createItem, onExistingActive, onQueryChange }) {
     const inputRef = useRef(null);
 
-    const { value, handleChange, handleKeyDown, handleSubmit } = useSmartOmnibox({
+    const { value, handleChange, handleKeyDown, handleSubmit, handleCompositionStart, handleCompositionEnd } = useSmartOmnibox({
         items,
         isActive,
         activateItem,
@@ -31,6 +31,8 @@ function TestOmnibox({ items, isActive, activateItem, createItem, onExistingActi
                 aria-label="Search or add item"
                 value={value}
                 onChange={handleChange}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
                 onKeyDown={handleKeyDown}
             />
         </form>
@@ -118,6 +120,36 @@ async function typeSlowly(input, text) {
 }
 
 describe('SmartOmnibox', () => {
+    test('composition_space_should_keep_full_prefix_when_matching_item_exists', async () => {
+        const { input } = renderHarness({
+            initialItems: [
+                { id: '1', name: 'Baking paper', isOnShoppingList: false, isInStock: false },
+            ],
+        });
+
+        fireEvent.compositionStart(input);
+
+        fireEvent.change(input, {
+            target: { value: 'Baking', selectionStart: 6, selectionEnd: 6 },
+            nativeEvent: { isComposing: true, data: 'Baking', inputType: 'insertCompositionText' },
+        });
+
+        await waitFor(() => expect(input).toHaveValue('Baking'));
+
+        fireEvent.compositionEnd(input, { data: 'Baking' });
+
+        fireEvent.input(input, {
+            target: { value: 'Baking ', selectionStart: 7, selectionEnd: 7 },
+            nativeEvent: { inputType: 'insertText', data: ' ' },
+        });
+
+        await waitFor(() => {
+            expect(input).toHaveValue('Baking ');
+            expect(input.selectionStart).toBe(7);
+            expect(input.selectionEnd).toBe(7);
+        });
+    });
+
     test('typing_existing_prefix_with_space_should_not_drop_characters', async () => {
         const { input } = renderHarness({
             initialItems: [

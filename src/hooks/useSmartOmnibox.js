@@ -17,6 +17,7 @@ export function useSmartOmnibox({
     const lastBackspaceRef = useRef(false);
     const hadSuggestionRef = useRef(false);
     const skipAutocompleteOnceRef = useRef(false);
+    const isComposingRef = useRef(false);
 
     useEffect(() => {
         onQueryChange?.(baseQuery.trim());
@@ -70,10 +71,20 @@ export function useSmartOmnibox({
 
     const handleChange = (e) => {
         const rawValue = e.target.value;
+        const inputType = e.inputType || e.nativeEvent?.inputType;
+        const isComposing = e.nativeEvent?.isComposing || e.isComposing || inputType === 'insertCompositionText' || isComposingRef.current;
+
+        if (isComposing) {
+            isComposingRef.current = true;
+            setValue(rawValue);
+            setBaseQuery(rawValue);
+            setPendingSelection({ start: rawValue.length, end: rawValue.length });
+            return;
+        }
+
         const selectionStart = e.target.selectionStart ?? rawValue.length;
         const selectionEnd = e.target.selectionEnd ?? selectionStart;
         const manualInput = rawValue.slice(0, selectionStart);
-        const inputType = e.inputType || e.nativeEvent?.inputType;
         const isDelete = inputType === 'deleteContentBackward' || lastBackspaceRef.current;
         const isInsert = inputType?.startsWith('insert') ?? !isDelete;
         const wasAutocompleting = hadSuggestionRef.current;
@@ -95,6 +106,15 @@ export function useSmartOmnibox({
 
         setBaseQuery(manualInput);
         applyAutocomplete(manualInput, skipThisChange ? true : nextPaused);
+    };
+
+    const handleCompositionStart = () => {
+        isComposingRef.current = true;
+    };
+
+    const handleCompositionEnd = () => {
+        isComposingRef.current = false;
+        skipAutocompleteOnceRef.current = true;
     };
 
     const handleBackspace = (e) => {
@@ -173,6 +193,8 @@ export function useSmartOmnibox({
         handleChange,
         handleKeyDown,
         handleSubmit,
+        handleCompositionStart,
+        handleCompositionEnd,
         clearInput,
     };
 }
