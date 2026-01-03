@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, useRef } from 
 import { StorageService } from '../services/storage';
 import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, saveFamilyBudget, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
 import buildInfo from '../buildInfo.json';
-import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents, parseCurrencyInput } from '../utils/currency';
+import { BUDGET_CURRENCY_VERSION, LOCAL_BUDGET_OWNER_ID, createDefaultBudget, createDefaultUserBudget, normalizeBudgetToCents, parseCurrencyInput } from '../utils/currency';
 
 const AppContext = createContext();
 
@@ -14,10 +14,12 @@ const DEMO_ITEMS = [
     { id: 'demo-5', name: 'Ice Cream', isInStock: false, isOnShoppingList: false }, // Hidden
 ];
 
+const getBudgetOwnerId = (user) => user?.uid ?? LOCAL_BUDGET_OWNER_ID;
+
 const DEMO_BUDGET = normalizeBudgetToCents({
     currencyVersion: BUDGET_CURRENCY_VERSION,
     weekly: { remaining: parseCurrencyInput('100') }
-}).budget;
+}, LOCAL_BUDGET_OWNER_ID).budget;
 
 export function AppProvider({ children }) {
     const [budget, setBudget] = useState(createDefaultBudget());
@@ -39,7 +41,9 @@ export function AppProvider({ children }) {
             const safeItems = Array.isArray(loadedItems) ? loadedItems : [];
 
             // DEMO DATA INJECTION
-            if ((safeItems.length === 0) && (!loadedBudget || Number(loadedBudget.weekly?.remaining) === 0)) {
+            const ownerId = getBudgetOwnerId(currentUser);
+            const ownerBudget = loadedBudget?.byUser?.[ownerId];
+            if ((safeItems.length === 0) && (!ownerBudget || Number(ownerBudget.weekly?.remaining) === 0)) {
                 setBudget(DEMO_BUDGET);
                 setItems(DEMO_ITEMS);
             } else {
@@ -99,7 +103,8 @@ export function AppProvider({ children }) {
         import('../services/firebase').then(async ({ listenToFamilyBudget, listenToFamilyItems, stopListening }) => {
             const unsubscribeBudget = listenToFamilyBudget((familyBudget) => {
                 if (!familyBudget) return;
-                const { budget: normalizedBudget, migrated } = normalizeBudgetToCents(familyBudget);
+                const ownerId = getBudgetOwnerId(currentUser);
+                const { budget: normalizedBudget, migrated } = normalizeBudgetToCents(familyBudget, ownerId);
                 isFirebaseUpdateRef.current = true;
                 setBudget(normalizedBudget);
                 localStorage.setItem('shopping_spree_budget', JSON.stringify(normalizedBudget));
@@ -173,23 +178,27 @@ export function AppProvider({ children }) {
             lastModifiedBy: currentUser?.email ?? 'Local user'
         };
 
+        const budgetOwnerId = getBudgetOwnerId(currentUser);
+
         setBudget(prev => {
-            const previousValue = Number(prev?.weekly?.[field]) || 0;
+            const safeBudget = prev && typeof prev === 'object' ? prev : createDefaultBudget();
+            const currentUserBudget = safeBudget.byUser?.[budgetOwnerId] ?? createDefaultUserBudget();
+            const previousValue = Number(currentUserBudget?.weekly?.[field]) || 0;
             const delta = Number.isFinite(Number(options.change))
                 ? Math.round(Number(options.change))
                 : parsedValue - previousValue;
             const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-            const existingHistory = Array.isArray(prev?.history) ? prev.history : [];
+            const existingHistory = Array.isArray(currentUserBudget?.history) ? currentUserBudget.history : [];
             const recentHistory = existingHistory.filter((entry) => {
                 const timestamp = Date.parse(entry?.timestamp);
                 return Number.isFinite(timestamp) && timestamp >= thirtyDaysAgo;
             });
 
-            const nextBudget = {
-                ...prev,
-                currencyVersion: prev.currencyVersion ?? BUDGET_CURRENCY_VERSION,
+            const nextUserBudget = {
+                ...currentUserBudget,
+                currencyVersion: currentUserBudget.currencyVersion ?? BUDGET_CURRENCY_VERSION,
                 metadata: {
-                    ...prev.metadata,
+                    ...currentUserBudget.metadata,
                     ...metadata
                 },
                 history: [
@@ -204,13 +213,21 @@ export function AppProvider({ children }) {
                     }
                 ],
                 weekly: {
-                    ...prev.weekly,
+                    ...currentUserBudget.weekly,
                     [field]: parsedValue
                 }
             };
 
+            const nextBudget = {
+                currencyVersion: BUDGET_CURRENCY_VERSION,
+                byUser: {
+                    ...safeBudget.byUser,
+                    [budgetOwnerId]: nextUserBudget
+                }
+            };
+
             if (currentUser) {
-                updateBudgetField(category, field, parsedValue).catch(console.error);
+                updateBudgetField(budgetOwnerId, category, field, parsedValue).catch(console.error);
             }
 
             return nextBudget;
@@ -353,9 +370,15 @@ export function AppProvider({ children }) {
 
     // === DERIVED STATE ===
 
-    const weeklyBudgetState = useMemo(() => ({
-        remaining: Number(budget?.weekly?.remaining) || 0
-    }), [budget]);
+    const budgetOwnerId = getBudgetOwnerId(currentUser);
+    const weeklyBudgetState = useMemo(() => {
+        const userBudget = budget?.byUser?.[budgetOwnerId] ?? createDefaultUserBudget();
+
+        return {
+            remaining: Number(userBudget?.weekly?.remaining) || 0,
+            userBudget
+        };
+    }, [budget, budgetOwnerId]);
 
     const value = {
         budget,
@@ -373,7 +396,9 @@ export function AppProvider({ children }) {
             deleteItem
         },
         computed: {
-            weeklyRemaining: weeklyBudgetState?.remaining || 0
+            weeklyRemaining: weeklyBudgetState?.remaining || 0,
+            budgetOwnerId,
+            userBudget: weeklyBudgetState?.userBudget
         }
     };
 

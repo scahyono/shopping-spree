@@ -6,7 +6,7 @@ import buildInfo from '../buildInfo.json';
 import { formatCurrency, parseCurrencyInput } from '../utils/currency';
 
 export default function BudgetHeader() {
-    const { computed, actions, budget, loading } = useApp();
+    const { computed, actions, loading } = useApp();
     const [expanded, setExpanded] = useState(false);
     const [remoteBuildInfo, setRemoteBuildInfo] = useState(null);
     const [cacheStatus, setCacheStatus] = useState('');
@@ -124,7 +124,7 @@ export default function BudgetHeader() {
         if (!activeBudgetField) return;
 
         const { category, field } = activeBudgetField;
-        const baseValue = Number(budget?.[category]?.[field]) || 0;
+        const baseValue = Number(computed.userBudget?.[category]?.[field]) || 0;
         const amount = parsePendingValue();
         let nextValue = baseValue;
 
@@ -163,7 +163,7 @@ export default function BudgetHeader() {
     const isNegative = budgetAmount < 0;
     const formattedBudget = formatCurrency(budgetAmount);
 
-    const budgetHistory = Array.isArray(budget?.history) ? budget.history : [];
+    const budgetHistory = Array.isArray(computed.userBudget?.history) ? computed.userBudget.history : [];
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const recentHistory = budgetHistory
         .filter((entry) => {
@@ -217,10 +217,10 @@ export default function BudgetHeader() {
                             <div className="flex flex-col items-end gap-1 text-right">
                                 <span className="text-[10px] font-semibold tracking-widest uppercase text-brand-200">Last Modified</span>
                                 <span className="text-[11px] font-semibold text-white">
-                                    {budget?.metadata?.lastModified ? formatTimestamp(budget.metadata.lastModified) : '—'}
+                                    {computed.userBudget?.metadata?.lastModified ? formatTimestamp(computed.userBudget.metadata.lastModified) : '—'}
                                 </span>
-                                {budget?.metadata?.lastModifiedBy ? (
-                                    <span className="text-[10px] text-brand-200">by {budget.metadata.lastModifiedBy}</span>
+                                {computed.userBudget?.metadata?.lastModifiedBy ? (
+                                    <span className="text-[10px] text-brand-200">by {computed.userBudget.metadata.lastModifiedBy}</span>
                                 ) : null}
                             </div>
                         </div>
@@ -234,12 +234,12 @@ export default function BudgetHeader() {
                                     ref={(el) => { inputRefs.current[getFieldKey('weekly', 'remaining')] = el; }}
                                     type="number"
                                     className="w-28 bg-brand-700 text-white text-right rounded px-2 py-1 focus:ring-2 focus:ring-white outline-none"
-                                    value={isFieldActive('weekly', 'remaining') ? pendingValue : formatCurrency(budget.weekly.remaining)}
+                                    value={isFieldActive('weekly', 'remaining') ? pendingValue : formatCurrency(computed.userBudget?.weekly?.remaining ?? 0)}
                                     onChange={(e) => handleInputChange('weekly', 'remaining', e.target.value)}
                                     onFocus={() => handleInputFocus('weekly', 'remaining')}
                                     onBlur={handleInputBlur}
                                     onClick={(e) => e.stopPropagation()}
-                                    placeholder={formatCurrency(budget.weekly.remaining)}
+                                    placeholder={formatCurrency(computed.userBudget?.weekly?.remaining ?? 0)}
                                 />
                             </div>
                             <div className="flex justify-end text-sm font-semibold text-white">
@@ -318,7 +318,7 @@ export default function BudgetHeader() {
                             <span>
                                 {getFieldLabel(activeBudgetField.category, activeBudgetField.field)}
                             </span>
-                            <span className="text-gray-700">{formatCurrency(budget?.[activeBudgetField.category]?.[activeBudgetField.field] ?? 0)}</span>
+                            <span className="text-gray-700">{formatCurrency(computed.userBudget?.[activeBudgetField.category]?.[activeBudgetField.field] ?? 0)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <button
