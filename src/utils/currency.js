@@ -1,5 +1,7 @@
+import { calculateWeeklyBalance } from './budgetCalculations';
+
 export const CURRENCY_SCALE = 100;
-export const BUDGET_CURRENCY_VERSION = 2;
+export const BUDGET_CURRENCY_VERSION = 3;
 
 export function formatCurrency(valueInCents = 0) {
     const numeric = Number(valueInCents);
@@ -21,7 +23,7 @@ export function createDefaultBudget() {
             lastModified: null,
             lastModifiedBy: null
         },
-        weekly: { target: 0, actual: 0 }
+        weekly: { remaining: 0 }
     };
 }
 
@@ -31,7 +33,7 @@ export function normalizeBudgetToCents(rawBudget) {
 
     const isLikelyInCents = (value) => Math.abs(value) >= CURRENCY_SCALE * 20;
     const weeklyBudget = sourceBudget?.weekly || sourceBudget?.wants || {};
-    const values = [weeklyBudget.target, weeklyBudget.actual].map(Number).filter(Number.isFinite);
+    const values = [weeklyBudget.remaining, weeklyBudget.target, weeklyBudget.actual].map(Number).filter(Number.isFinite);
     const hasLikelyCents = needsMigration && values.some(isLikelyInCents);
 
     const normalizeValue = (value) => {
@@ -46,6 +48,14 @@ export function normalizeBudgetToCents(rawBudget) {
     };
 
     const sourceMetadata = sourceBudget?.metadata && typeof sourceBudget.metadata === 'object' ? sourceBudget.metadata : {};
+    const deriveRemaining = () => {
+        const explicitRemaining = weeklyBudget.remaining;
+
+        if (Number.isFinite(Number(explicitRemaining))) return explicitRemaining;
+
+        return calculateWeeklyBalance(Number(weeklyBudget.target) || 0, Number(weeklyBudget.actual) || 0);
+    };
+
     const normalized = {
         currencyVersion: BUDGET_CURRENCY_VERSION,
         metadata: {
@@ -53,8 +63,7 @@ export function normalizeBudgetToCents(rawBudget) {
             lastModifiedBy: typeof sourceMetadata.lastModifiedBy === 'string' ? sourceMetadata.lastModifiedBy : (typeof sourceBudget.lastModifiedBy === 'string' ? sourceBudget.lastModifiedBy : null)
         },
         weekly: {
-            target: normalizeValue(weeklyBudget.target ?? 0),
-            actual: normalizeValue(weeklyBudget.actual ?? 0)
+            remaining: normalizeValue(deriveRemaining())
         }
     };
 

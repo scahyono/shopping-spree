@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { StorageService } from '../services/storage';
-import { calculateWeeklyBalance } from '../utils/budgetCalculations';
 import { deleteItem as firebaseDeleteItem, loadBuildInfoFromDatabase, onAuthChange, saveBuildInfo, saveFamilyBudget, updateBudgetField, updateItem as firebaseUpdateItem, isUserWhitelisted } from '../services/firebase';
 import buildInfo from '../buildInfo.json';
 import { BUDGET_CURRENCY_VERSION, createDefaultBudget, normalizeBudgetToCents, parseCurrencyInput } from '../utils/currency';
@@ -17,7 +16,7 @@ const DEMO_ITEMS = [
 
 const DEMO_BUDGET = normalizeBudgetToCents({
     currencyVersion: BUDGET_CURRENCY_VERSION,
-    weekly: { target: parseCurrencyInput('200'), actual: parseCurrencyInput('1.50') }
+    weekly: { remaining: parseCurrencyInput('198.50') }
 }).budget;
 
 export function AppProvider({ children }) {
@@ -40,7 +39,7 @@ export function AppProvider({ children }) {
             const safeItems = Array.isArray(loadedItems) ? loadedItems : [];
 
             // DEMO DATA INJECTION
-            if ((safeItems.length === 0) && (!loadedBudget || Number(loadedBudget.weekly?.target) === 0)) {
+            if ((safeItems.length === 0) && (!loadedBudget || Number(loadedBudget.weekly?.remaining) === 0)) {
                 setBudget(DEMO_BUDGET);
                 setItems(DEMO_ITEMS);
             } else {
@@ -332,14 +331,9 @@ export function AppProvider({ children }) {
 
     // === DERIVED STATE ===
 
-    const weeklyBudgetState = useMemo(() => {
-        const weeklyBudget = Number(budget?.weekly?.target) || 0;
-        const weeklySpent = Number(budget?.weekly?.actual) || 0;
-
-        return {
-            remaining: calculateWeeklyBalance(weeklyBudget, weeklySpent)
-        };
-    }, [budget]);
+    const weeklyBudgetState = useMemo(() => ({
+        remaining: Number(budget?.weekly?.remaining) || 0
+    }), [budget]);
 
     const value = {
         budget,
