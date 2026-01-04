@@ -246,9 +246,6 @@ export default function BudgetHeader() {
                                     placeholder={formatCurrency(computed.userBudget?.weekly?.remaining ?? 0)}
                                 />
                             </div>
-                            <div className="flex justify-end text-sm font-semibold text-white">
-                                <span className={isNegative ? 'text-red-200' : 'text-white'}>Budget: {formattedBudget}</span>
-                            </div>
                             <div className="pt-3 space-y-2">
                                 <div className="flex items-center justify-between">
                                     <div className="flex flex-col gap-0.5">
