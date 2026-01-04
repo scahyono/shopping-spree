@@ -201,8 +201,6 @@ export default function BudgetHeader() {
                             {formattedBudget}
                         </div>
 
-                        <div className="text-xs opacity-70">Budget</div>
-
                         <div className="flex justify-center -mt-1 opacity-50">
                             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
@@ -213,22 +211,22 @@ export default function BudgetHeader() {
                 </div>
 
                 {/* Detailed View */}
-                <div className={`bg-brand-600 overflow-hidden transition-all duration-300 ease-in-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                    <div className="p-4 space-y-4">
+                <div className={`bg-brand-600 overflow-hidden transition-all duration-300 ease-in-out ${expanded ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
                         <div className="flex items-start justify-between gap-4 text-xs uppercase tracking-wide text-brand-100">
                             <div className="flex flex-col gap-1">
                                 <span className="font-semibold">Budget</span>
                                 <span className="text-[11px] opacity-80">Configuration</span>
                             </div>
-                            <div className="flex flex-col items-end gap-1 text-right">
-                                <span className="text-[10px] font-semibold tracking-widest uppercase text-brand-200">Last Modified</span>
-                                <span className="text-[11px] font-semibold text-white">
-                                    {computed.userBudget?.metadata?.lastModified ? formatTimestamp(computed.userBudget.metadata.lastModified) : '—'}
-                                </span>
-                                {computed.userBudget?.metadata?.lastModifiedBy ? (
-                                    <span className="text-[10px] text-brand-200">by {computed.userBudget.metadata.lastModifiedBy}</span>
-                                ) : null}
-                            </div>
+                            <a
+                                href="https://github.com/scahyono/shopping-spree"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-lg font-semibold text-white hover:text-brand-50"
+                                aria-label="Project documentation"
+                            >
+                                ?
+                            </a>
                         </div>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -247,9 +245,6 @@ export default function BudgetHeader() {
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder={formatCurrency(computed.userBudget?.weekly?.remaining ?? 0)}
                                 />
-                            </div>
-                            <div className="flex justify-end text-sm font-semibold text-white">
-                                <span className={isNegative ? 'text-red-200' : 'text-white'}>Budget: {formattedBudget}</span>
                             </div>
                             <div className="pt-3 space-y-2">
                                 <div className="flex items-center justify-between">
